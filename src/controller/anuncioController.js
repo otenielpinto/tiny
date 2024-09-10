@@ -4,6 +4,7 @@ import { Tiny } from "../services/tinyServices.js";
 import { TMongo } from "../infra/mongoClient.js";
 import { ProdutoTinyRepository } from "../repository/produtoTinyRepository.js";
 import { EstoqueRepository } from "../repository/estoqueRepository.js";
+import { estoqueController } from "./estoqueController.js";
 
 async function init() {
   await retificarEstoque();
@@ -75,30 +76,43 @@ async function retificarEstoque() {
   for (let produto of produtos) {
     let data = [{ key: "id", value: produto.id }];
     let response = null;
-    let result;
 
     for (let t = 1; t < 5; t++) {
       console.log("Obtendo estoque " + t + "/5 Prod:" + produto.id);
-      result = await tiny.post("produto.obter.estoque.php", data);
-      response = await lib.tratarRetorno(result, "produto");
+      response = await tiny.post("produto.obter.estoque.php", data);
+      response = await lib.tratarRetorno(response, "produto");
       if (!response) continue;
       break;
     }
     if (!response) continue;
 
-    let saldo = 0;
-    saldo = response?.saldo ? response?.saldo : 0;
+    let saldo = Number(response?.saldo ? response?.saldo : 0);
     response = await estoqueRepository.findByIdProduto(
       Number(lib.onlyNumber(produto.codigo))
     );
 
-    let qt_estoque = 0;
-    qt_estoque = response?.estoque ? response?.estoque : 0;
+    let qt_estoque = Number(response?.estoque ? response?.estoque : 0);
 
-    console.log("Estoque: " + qt_estoque + " Saldo: " + saldo);
-    if (qt_estoque != saldo) {
-      console.log("atualizar estoque no tiny");
-      continue;
+    console.log(
+      "Estoque: " +
+        qt_estoque +
+        " Saldo: " +
+        saldo +
+        " TV:" +
+        produto.tipoVariacao
+    );
+    if (qt_estoque != saldo && produto.tipoVariacao != "P") {
+      response = await estoqueController.produtoAtualizarEstoque(
+        id_tenant,
+        produto.id,
+        qt_estoque
+      );
+
+      if (response?.registro?.status != "OK") {
+        produto.sys_status = 500;
+        await prodTinyRepository.update(produto.id, produto);
+        continue;
+      }
     }
 
     produto.sys_status = 1;
