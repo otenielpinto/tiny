@@ -1,18 +1,26 @@
 import { TMongo } from "./infra/mongoClient.js";
 import { lib } from "./utils/lib.js";
-import nodeSchedule from "node-schedule";
+import { AnuncioController } from "./controller/anuncioController.js";
 
+import nodeSchedule from "node-schedule";
 global.processandoNow = 0;
 
 async function task() {
   global.processandoNow = 1;
   //colocar aqui controller;
 
+  await AnuncioController.init();
+
   global.processandoNow = 0;
   console.log(" Fim do processamento rotina task " + lib.currentDateTimeStr());
 }
 
 async function init() {
+  //Espaço reserva para testes ;
+
+  await AnuncioController.init();
+  return;
+
   try {
     let time = process.env.CRON_JOB_TIME || 10; //tempo em minutos
     const job = nodeSchedule.scheduleJob(`*/${time} * * * *`, async () => {

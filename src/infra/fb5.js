@@ -1,4 +1,7 @@
 import firebird from "node-firebird";
+import { config } from "dotenv-safe";
+config();
+
 //Inspiracao
 //https://knexjs.org/#changelog
 //https://github.com/asfernandes/node-firebird-drivers/blob/master/packages/node-firebird-driver/src/test/tests.ts
@@ -20,7 +23,6 @@ const executeQuery = async (ssql, parameters) => {
   return new Promise((resolve, reject) => {
     firebird.attach(dboptions, (err, db) => {
       if (err) {
-        db.detach();
         console.log(ssql, parameters);
         reject(err);
       } else {
@@ -273,7 +275,7 @@ const getGenId = async (nameGenerator = "") => {
 
 //USAR O CONCEITO MANY E USAR SQL PURO SEMPRE
 
-export {
+export const fb5 = {
   firebird,
   dboptions,
   openQuery,

@@ -294,39 +294,26 @@ function getAlterado_apos(numero_dias = 0, hora = null) {
   return `alterado_apos=${formatDate(date, format)} ${hora}`;
 }
 
-async function tratarRetorno(result, status_code = 200) {
-  let tempo_ate_permitir_novamente = 0;
-  let limite_de_requisicoes = 0;
-
-  //gerou erro , tratamento do erro
-  if (result?.response?.status == 429) {
-    let r = JSON.stringify(result?.response?.data);
-    let url = result?.response?.config?.url;
-    console.log(`Tratando response retorno [429] ${url} ` + r);
-    if (result?.response?.data?.tempo_ate_permitir_novamente) {
-      tempo_ate_permitir_novamente = result?.response?.data
-        ?.tempo_ate_permitir_novamente
-        ? result?.response?.data?.tempo_ate_permitir_novamente
-        : 0;
-      await sleep(1000 * tempo_ate_permitir_novamente + 1);
-    }
-    return 0;
+async function tratarRetorno(response, prop) {
+  if (response.status == 429) {
+    console.log("Requisição bloqueada, aguardando 5 segundos...");
+    await lib.sleep(1000 * 10);
+    return null;
   }
 
-  if (!result) return 0;
-  if (result?.status == status_code) {
-    console.log(`Tratando retorno [${status_code}] ` + currentDateTimeStr());
-    return status_code;
+  let result = null;
+  let retorno = response?.data?.retorno;
+  if (retorno?.status == "OK") {
+    return retorno[prop];
   }
 
-  if (result?.status == 429) {
-    console.log("Tratando retorno [429] " + result?.data);
-    if (result?.tempo_ate_permitir_novamente) {
-      tempo_ate_permitir_novamente = result.tempo_ate_permitir_novamente;
-      await sleep(1000 * tempo_ate_permitir_novamente + 1);
-    }
-    return 0;
+  if (retorno?.status == "Erro") {
+    await lib.sleep(1000 * 10);
+    console.log(response?.data?.retorno?.erros);
+    return null;
   }
+
+  console.log(response);
 
   //tratar o cabecalho
 }

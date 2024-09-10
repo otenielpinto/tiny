@@ -2,7 +2,7 @@
 
 const collection = "mpk_anuncio";
 
-class MpkAnuncio {
+class AnuncioRepository {
   constructor(db) {
     this.db = db;
   }
@@ -100,15 +100,15 @@ class MpkAnuncio {
       };
 
       try {
-        return await this.db
+        await this.db
           .collection(collection)
           .updateMany(query, { $set: fields });
       } catch (e) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 200));
         console.log(e);
       }
     } //for
   }
 }
 
-export { MpkAnuncio };
+export { AnuncioRepository };

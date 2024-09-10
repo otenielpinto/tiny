@@ -1,28 +1,41 @@
 //Classe tem letras maiuculoas
 
-const collection = "tmp_modelo";
+const collection = "tmp_produto_tiny";
 
-class ModeloRepository {
-  constructor(db) {
+class ProdutoTinyRepository {
+  constructor(db, id_tenant) {
     this.db = db;
+    this.id_tenant = Number(id_tenant);
   }
 
   async create(payload) {
+    if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
+    if (!payload.sys_status) payload.sys_status = 0;
+    if (!payload.sys_created_at) payload.sys_created_at = new Date();
+    payload.sys_saldo = 0;
+    payload.sys_estoque = 0;
     const result = await this.db.collection(collection).insertOne(payload);
     return result.insertedId;
   }
 
   async update(id, payload) {
+    if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
+    if (!payload.sys_status) payload.sys_status = 0;
+    payload.updated_at = new Date();
     const result = await this.db
       .collection(collection)
-      .updateOne({ id: Number(id) }, { $set: payload }, { upsert: true });
+      .updateOne(
+        { id: String(id), id_tenant: this.id_tenant },
+        { $set: payload },
+        { upsert: true }
+      );
     return result.modifiedCount > 0;
   }
 
   async delete(id) {
     const result = await this.db
       .collection(collection)
-      .deleteOne({ id: Number(id) });
+      .deleteOne({ id: String(id), id_tenant: this.id_tenant });
     return result.deletedCount > 0;
   }
 
@@ -31,7 +44,9 @@ class ModeloRepository {
   }
 
   async findById(id) {
-    return await this.db.collection(collection).findOne({ id: Number(id) });
+    return await this.db
+      .collection(collection)
+      .findOne({ id: String(id), id_tenant: this.id_tenant });
   }
 
   async insertMany(items) {
@@ -52,4 +67,4 @@ class ModeloRepository {
   }
 }
 
-export { ModeloRepository };
+export { ProdutoTinyRepository };

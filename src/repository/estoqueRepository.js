@@ -1,10 +1,11 @@
 //Classe tem letras maiuculoas
 
-const collection = "tmp_modelo";
+const collection = "tmp_estoque";
 
-class ModeloRepository {
-  constructor(db) {
+class EstoqueRepository {
+  constructor(db, id_tenant) {
     this.db = db;
+    this.id_tenant = Number(id_tenant);
   }
 
   async create(payload) {
@@ -34,6 +35,12 @@ class ModeloRepository {
     return await this.db.collection(collection).findOne({ id: Number(id) });
   }
 
+  async findByIdProduto(id_produto) {
+    return await this.db
+      .collection(collection)
+      .findOne({ id_produto: Number(id_produto) });
+  }
+
   async insertMany(items) {
     if (!Array.isArray(items)) return null;
     try {
@@ -52,4 +59,4 @@ class ModeloRepository {
   }
 }
 
-export { ModeloRepository };
+export { EstoqueRepository };

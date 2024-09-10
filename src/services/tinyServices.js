@@ -6,14 +6,18 @@ class Tiny {
     this.token = token;
   }
   async get(url) {
+    data.push({ key: "token", value: this.token });
     return await tinyApi(url, [], "GET");
   }
   async post(url, data = []) {
     data.push({ key: "token", value: this.token });
+    data.push({ key: "formato", value: "json" });
     return await tinyApi(url, data, "POST");
   }
   async put(url, data = []) {
     data.push({ key: "token", value: this.token });
+    data.push({ key: "formato", value: "json" });
+
     return await tinyApi(url, data, "PUT");
   }
   async delete(url) {
