@@ -99,12 +99,6 @@ async function importarProdutoTiny() {
     await importarProdutoTinyByTenant(tenant);
   }
 }
-async function retificarEstoque() {
-  let tenants = await tenantController.findByMarkeplace(marketplaceTypes.tiny);
-  for (let tenant of tenants) {
-    await retificarEstoqueByTenant(tenant);
-  }
-}
 
 async function retificarEstoqueByTenant(tenant) {
   let id_tenant = Number(tenant.id_tenant);

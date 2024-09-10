@@ -24,10 +24,14 @@ async function updateEstoqueLoteByTenant(tenant, anuncios) {
   );
 
   //notifico todas as variacoes
+  let limite = 0;
   for (let anuncio of anuncios) {
+    limite++;
     let rows = await estoqueRepository.findAll({
       codigo_anuncio: anuncio.codigo,
     });
+    if (limite > 100) break;
+    console.log("update anuncio" + anuncio.id + " " + anuncio.sku);
 
     for (let row of rows) {
       let payload = {
