@@ -4,8 +4,11 @@ import { TMongo } from "../infra/mongoClient.js";
 import { EstoqueRepository } from "../repository/estoqueRepository.js";
 import { ProdutoTinyRepository } from "../repository/produtoTinyRepository.js";
 import { AnuncioRepository } from "../repository/anuncioRepository.js";
+import { logService } from "../services/logService.js";
 
-async function init() {}
+async function init() {
+  //fazer uma atualizacao dos status =500  e tambem de todos que estão situacao =0
+}
 
 async function updateEstoqueLoteByTenant(tenant, anuncios) {
   let estoqueRepository = new EstoqueRepository(
@@ -31,14 +34,30 @@ async function updateEstoqueLoteByTenant(tenant, anuncios) {
       codigo_anuncio: anuncio.codigo,
     });
     if (limite > 100) break;
-    console.log("update anuncio" + anuncio.id + " " + anuncio.sku);
+    console.log(
+      `[${limite} ] update anuncio ` + anuncio.id + " " + anuncio.sku
+    );
 
     for (let row of rows) {
       let payload = {
         sys_estoque: Number(row?.estoque ? row.estoque : 0),
       };
+
+      //estava gerando um erro , pois estava cadastrando
       let codigo = String(row?.id_produto);
-      await produtoTinyRepository.updateByCodigo(codigo, payload);
+      let r = await produtoTinyRepository.updateByCodigo(codigo, payload);
+      if (!r) {
+        await logService.saveLog({
+          id_tenant: tenant.id_tenant,
+          id_marketplace: tenant.id_marketplace,
+          id_anuncio: anuncio.id,
+          id_produto: codigo,
+          message: "Produto nao atualizado no Tiny " + codigo,
+          payload: payload,
+        });
+        await anuncioRepository.update(anuncio.id, { status: 500 });
+        continue;
+      }
     }
     await anuncioRepository.update(anuncio.id, { status: 1 });
   }
@@ -71,7 +90,7 @@ async function produtoAtualizarEstoque(token, id_produto, quantity) {
   const data = [{ key: "estoque", value: { estoque } }];
 
   for (let t = 1; t < 5; t++) {
-    console.log("Atualizando estoque " + t + "/5 Prod:" + id_produto);
+    console.log("Atualizando estoque " + t + "/5  " + id_produto);
     response = await tiny.post("produto.atualizar.estoque.php", data);
     response = await lib.tratarRetorno(response, "registros");
     if (!response) continue;

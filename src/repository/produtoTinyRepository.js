@@ -29,10 +29,12 @@ class ProdutoTinyRepository {
         { $set: payload },
         { upsert: true }
       );
-    return result.modifiedCount > 0;
+    return result?.modifiedCount > 0;
   }
 
   async updateByCodigo(codigo, payload) {
+    //  { upsert: false }   -- Nao cadastrar  nada se nao encontrar
+
     if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
     if (!payload.sys_status) payload.sys_status = 0;
     payload.updated_at = new Date();
@@ -41,9 +43,9 @@ class ProdutoTinyRepository {
       .updateMany(
         { codigo: String(codigo), id_tenant: this.id_tenant },
         { $set: payload },
-        { upsert: true }
+        { upsert: false }
       );
-    return result.modifiedCount > 0;
+    return result?.modifiedCount > 0;
   }
 
   async delete(id) {

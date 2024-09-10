@@ -145,7 +145,6 @@ async function retificarEstoqueByTenant(tenant) {
     } else {
       qt_estoque = Number(produto?.sys_estoque ? produto?.sys_estoque : 0);
     }
-
     console.log(`Estoque:${qt_estoque} Saldo:${saldo} ${produto.tipoVariacao}`);
 
     if (qt_estoque != saldo && produto.tipoVariacao != "P") {
