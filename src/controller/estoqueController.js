@@ -1,10 +1,47 @@
 import { lib } from "../utils/lib.js";
 import { Tiny } from "../services/tinyServices.js";
+import { TMongo } from "../infra/mongoClient.js";
+import { EstoqueRepository } from "../repository/estoqueRepository.js";
+import { ProdutoTinyRepository } from "../repository/produtoTinyRepository.js";
+import { AnuncioRepository } from "../repository/anuncioRepository.js";
 
 async function init() {}
 
+async function updateEstoqueLoteByTenant(tenant, anuncios) {
+  let estoqueRepository = new EstoqueRepository(
+    await TMongo.connect(),
+    tenant.id_tenant
+  );
+
+  let produtoTinyRepository = new ProdutoTinyRepository(
+    await TMongo.connect(),
+    tenant.id_tenant
+  );
+
+  let anuncioRepository = new AnuncioRepository(
+    await TMongo.connect(),
+    tenant.id_tenant
+  );
+
+  //notifico todas as variacoes
+  for (let anuncio of anuncios) {
+    let rows = await estoqueRepository.findAll({
+      codigo_anuncio: anuncio.codigo,
+    });
+
+    for (let row of rows) {
+      let payload = {
+        sys_estoque: Number(row?.estoque ? row.estoque : 0),
+      };
+      let codigo = String(row?.id_produto);
+      await produtoTinyRepository.updateByCodigo(codigo, payload);
+    }
+    await anuncioRepository.update(anuncio.id, { status: 1 });
+  }
+}
+
 //idProduto = id Tiny do Produto
-async function produtoAtualizarEstoque(id_tenant, id_produto, quantity) {
+async function produtoAtualizarEstoque(token, id_produto, quantity) {
   let date = new Date();
   let hora = date.getHours(); // 0-23
   let min = date.getMinutes(); // 0-59
@@ -25,7 +62,7 @@ async function produtoAtualizarEstoque(id_tenant, id_produto, quantity) {
     quantidade: quantity,
   };
 
-  const tiny = new Tiny({ token: process.env.TINY_TOKEN });
+  const tiny = new Tiny({ token: token });
   let response = null;
   const data = [{ key: "estoque", value: { estoque } }];
 
@@ -43,6 +80,7 @@ async function produtoAtualizarEstoque(id_tenant, id_produto, quantity) {
 const estoqueController = {
   init,
   produtoAtualizarEstoque,
+  updateEstoqueLoteByTenant,
 };
 
 export { estoqueController };

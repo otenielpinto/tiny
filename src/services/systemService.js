@@ -68,5 +68,11 @@ async function started(id_tenant, name_service) {
   await updateService(id_tenant, name_service);
   return 0;
 }
+const systemService = {
+  started,
+  getService,
+  updateService,
+  hasExec,
+};
 
-export { started, getService, updateService, hasExec };
+export { systemService };

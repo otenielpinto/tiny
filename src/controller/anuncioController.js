@@ -5,18 +5,53 @@ import { TMongo } from "../infra/mongoClient.js";
 import { ProdutoTinyRepository } from "../repository/produtoTinyRepository.js";
 import { EstoqueRepository } from "../repository/estoqueRepository.js";
 import { estoqueController } from "./estoqueController.js";
+import { marketplaceTypes } from "../types/marketplaceTypes.js";
+import { tenantController } from "./tenantController.js";
+import { systemService } from "../services/systemService.js";
 
 async function init() {
-  await retificarEstoque();
+  await importarProdutoTiny();
+  await updateAnuncios();
+  await enviarEstoqueEcommerce();
 }
 
-async function importarProdutoTiny() {
-  let produtoTinyRepository = new ProdutoTinyRepository(
+async function enviarEstoqueEcommerce() {
+  let tenants = await tenantController.findByMarkeplace(marketplaceTypes.tiny);
+  for (let tenant of tenants) {
+    await retificarEstoqueByTenant(tenant);
+  }
+}
+
+async function updateAnunciosByTenant(tenant) {
+  let anuncioRepository = new AnuncioRepository(
     await TMongo.connect(),
-    process.env.CONFIG_ID_TENANT
+    tenant.id_tenant
   );
 
-  const tiny = new Tiny({ token: process.env.TINY_TOKEN });
+  let where = {
+    id_tenant: tenant.id_tenant,
+    id_marketplace: tenant.id_marketplace,
+    status: 0,
+  };
+
+  let rows = await anuncioRepository.findAll(where);
+  await estoqueController.updateEstoqueLoteByTenant(tenant, rows);
+}
+
+async function updateAnuncios() {
+  let tenants = await tenantController.findByMarkeplace(marketplaceTypes.tiny);
+  for (let tenant of tenants) {
+    await updateAnunciosByTenant(tenant);
+  }
+}
+
+async function importarProdutoTinyByTenant(tenant) {
+  let produtoTinyRepository = new ProdutoTinyRepository(
+    await TMongo.connect(),
+    tenant.id_tenant
+  );
+
+  const tiny = new Tiny({ token: tenant.token });
   let page = 1;
   let data = [
     { key: "pesquisa", value: "" },
@@ -35,9 +70,8 @@ async function importarProdutoTiny() {
     response = null;
 
     for (let t = 1; t < 5; t++) {
-      //mensagem informando numero de paginal do total e numero de tentativa
       console.log(
-        "Tentativa: " + t + "  Paginas : " + page_count + " of " + page
+        "Tentativa: " + t + "  Paginas: " + page_count + " de " + page
       );
       result = await tiny.post("produtos.pesquisa.php", data);
       response = await lib.tratarRetorno(result, "produtos");
@@ -47,17 +81,33 @@ async function importarProdutoTiny() {
     let lote = [];
     if (!Array.isArray(response)) continue;
     for (let item of response) {
-      lote.push({ ...item.produto });
+      lote.push({ ...item.produto, sys_status: 1 });
     }
 
     for (let item of lote) {
+      //atualiza o preco de venda
       await produtoTinyRepository.update(item.id, item);
     }
   }
 }
 
+async function importarProdutoTiny() {
+  let tenants = await tenantController.findByMarkeplace(marketplaceTypes.tiny);
+  let key = "importarProdutoTiny";
+  for (let tenant of tenants) {
+    if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
+    await importarProdutoTinyByTenant(tenant);
+  }
+}
 async function retificarEstoque() {
-  let id_tenant = Number(process.env.CONFIG_ID_TENANT);
+  let tenants = await tenantController.findByMarkeplace(marketplaceTypes.tiny);
+  for (let tenant of tenants) {
+    await retificarEstoqueByTenant(tenant);
+  }
+}
+
+async function retificarEstoqueByTenant(tenant) {
+  let id_tenant = Number(tenant.id_tenant);
   const prodTinyRepository = new ProdutoTinyRepository(
     await TMongo.connect(),
     id_tenant
@@ -66,7 +116,7 @@ async function retificarEstoque() {
     await TMongo.connect(),
     id_tenant
   );
-  const tiny = new Tiny({ token: process.env.TINY_TOKEN });
+  const tiny = new Tiny({ token: tenant.token });
 
   const produtos = await prodTinyRepository.findAll({
     sys_status: 0,
@@ -84,26 +134,29 @@ async function retificarEstoque() {
       if (!response) continue;
       break;
     }
-    if (!response) continue;
 
+    if (!response) {
+      produto.sys_status = 500;
+      await prodTinyRepository.update(produto.id, produto);
+      continue;
+    }
     let saldo = Number(response?.saldo ? response?.saldo : 0);
-    response = await estoqueRepository.findByIdProduto(
-      Number(lib.onlyNumber(produto.codigo))
-    );
+    let qt_estoque = 0;
 
-    let qt_estoque = Number(response?.estoque ? response?.estoque : 0);
+    if (!produto.sys_estoque) {
+      response = await estoqueRepository.findByIdProduto(
+        Number(lib.onlyNumber(produto.codigo))
+      );
+      qt_estoque = Number(response?.estoque ? response?.estoque : 0);
+    } else {
+      qt_estoque = Number(produto?.sys_estoque ? produto?.sys_estoque : 0);
+    }
 
-    console.log(
-      "Estoque: " +
-        qt_estoque +
-        " Saldo: " +
-        saldo +
-        " TV:" +
-        produto.tipoVariacao
-    );
+    console.log(`Estoque:${qt_estoque} Saldo:${saldo} ${produto.tipoVariacao}`);
+
     if (qt_estoque != saldo && produto.tipoVariacao != "P") {
       response = await estoqueController.produtoAtualizarEstoque(
-        id_tenant,
+        tenant.token,
         produto.id,
         qt_estoque
       );

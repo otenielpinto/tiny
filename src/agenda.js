@@ -1,6 +1,7 @@
 import { TMongo } from "./infra/mongoClient.js";
 import { lib } from "./utils/lib.js";
 import { AnuncioController } from "./controller/anuncioController.js";
+import { tenantController } from "./controller/tenantController.js";
 
 import nodeSchedule from "node-schedule";
 global.processandoNow = 0;
@@ -19,6 +20,7 @@ async function init() {
   //Espaço reserva para testes ;
 
   await AnuncioController.init();
+
   return;
 
   try {

@@ -3,26 +3,37 @@
 const collection = "mpk_anuncio";
 
 class AnuncioRepository {
-  constructor(db) {
+  constructor(db, id_tenant) {
     this.db = db;
+    this.id_tenant = Number(id_tenant);
   }
 
   async create(payload) {
+    if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
+    if (!payload.sys_created_at) payload.sys_created_at = new Date();
     const result = await this.db.collection(collection).insertOne(payload);
     return result.insertedId;
   }
 
   async update(id, payload) {
+    if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
+    if (!payload.updated_at) payload.updated_at = new Date();
+    if (!payload.status) payload.status = 0;
+
     const result = await this.db
       .collection(collection)
-      .updateOne({ id: Number(id) }, { $set: payload }, { upsert: true });
+      .updateOne(
+        { id: Number(id), id_tenant: this.id_tenant },
+        { $set: payload },
+        { upsert: true }
+      );
     return result.modifiedCount > 0;
   }
 
   async delete(id) {
     const result = await this.db
       .collection(collection)
-      .deleteOne({ id: Number(id) });
+      .deleteOne({ id: Number(id), id_tenant: this.id_tenant });
     return result.deletedCount > 0;
   }
 
@@ -31,7 +42,9 @@ class AnuncioRepository {
   }
 
   async findById(id) {
-    return await this.db.collection(collection).findOne({ id: Number(id) });
+    return await this.db
+      .collection(collection)
+      .findOne({ id: Number(id), id_tenant: this.id_tenant });
   }
 
   async insertMany(items) {
@@ -67,6 +80,9 @@ class AnuncioRepository {
             _id: "$_id",
             id: { $first: "$id" },
             sku: { $first: "$sku" },
+            codigo: { $first: "$codigo" },
+            id_tenant: { $first: "$id_tenant" },
+            id_marketplace: { $first: "$id_marketplace" },
           },
         },
 
@@ -86,28 +102,6 @@ class AnuncioRepository {
     } catch (e) {
       console.log(e);
     }
-  }
-  async updateEstoqueMany(items = []) {
-    if (!Array.isArray(items)) return null;
-    let query = {};
-    let fields = {};
-    for (let item of items) {
-      query = { id: Number(item?.id) };
-      fields = {
-        estoque: Number(item?.estoque),
-        preco: Number(item?.preco),
-        preco_promocional: Number(item?.preco_promocional),
-      };
-
-      try {
-        await this.db
-          .collection(collection)
-          .updateMany(query, { $set: fields });
-      } catch (e) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        console.log(e);
-      }
-    } //for
   }
 }
 

@@ -1,11 +1,10 @@
 //Classe tem letras maiuculoas
 
-const collection = "tmp_estoque";
+const collection = "tenant";
 
-class EstoqueRepository {
-  constructor(db, id_tenant) {
+class TenantRepository {
+  constructor(db) {
     this.db = db;
-    this.id_tenant = Number(id_tenant);
   }
 
   async create(payload) {
@@ -13,14 +12,10 @@ class EstoqueRepository {
     return result.insertedId;
   }
 
-  async update(codigo, payload) {
+  async update(id, payload) {
     const result = await this.db
       .collection(collection)
-      .updateOne(
-        { codigo: String(codigo) },
-        { $set: payload },
-        { upsert: true }
-      );
+      .updateOne({ id: Number(id) }, { $set: payload }, { upsert: true });
     return result.modifiedCount > 0;
   }
 
@@ -37,12 +32,6 @@ class EstoqueRepository {
 
   async findById(id) {
     return await this.db.collection(collection).findOne({ id: Number(id) });
-  }
-
-  async findByIdProduto(id_produto) {
-    return await this.db
-      .collection(collection)
-      .findOne({ id_produto: Number(id_produto) });
   }
 
   async insertMany(items) {
@@ -63,4 +52,4 @@ class EstoqueRepository {
   }
 }
 
-export { EstoqueRepository };
+export { TenantRepository };
