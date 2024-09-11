@@ -12,6 +12,8 @@ import { systemService } from "../services/systemService.js";
 async function init() {
   await importarProdutoTiny();
   await updateAnuncios();
+
+  //tem que ser por ultimo porque depende de updateAnuncios
   await enviarEstoqueEcommerce();
 }
 
@@ -101,15 +103,10 @@ async function importarProdutoTiny() {
 }
 
 async function retificarEstoqueByTenant(tenant) {
+  const c = await TMongo.connect();
   let id_tenant = Number(tenant.id_tenant);
-  const prodTinyRepository = new ProdutoTinyRepository(
-    await TMongo.connect(),
-    id_tenant
-  );
-  let estoqueRepository = new EstoqueRepository(
-    await TMongo.connect(),
-    id_tenant
-  );
+  const prodTinyRepository = new ProdutoTinyRepository(c, id_tenant);
+  const estoqueRepository = new EstoqueRepository(c, id_tenant);
   const tiny = new Tiny({ token: tenant.token });
 
   const produtos = await prodTinyRepository.findAll({
@@ -117,12 +114,15 @@ async function retificarEstoqueByTenant(tenant) {
     id_tenant: id_tenant,
   });
 
+  let response = null;
+  let status = 1;
   for (let produto of produtos) {
     let data = [{ key: "id", value: produto.id }];
-    let response = null;
+    response = null;
+    status = 1;
 
     for (let t = 1; t < 5; t++) {
-      console.log("Obtendo estoque " + t + "/5 Prod:" + produto.id);
+      console.log("Obtendo estoque " + t + "/5 " + produto.id);
       response = await tiny.post("produto.obter.estoque.php", data);
       response = await lib.tratarRetorno(response, "produto");
       if (!response) continue;
@@ -154,16 +154,12 @@ async function retificarEstoqueByTenant(tenant) {
         qt_estoque
       );
 
-      if (response?.registro?.status != "OK") {
-        produto.sys_status = 500;
-        await prodTinyRepository.update(produto.id, produto);
-        continue;
-      }
+      if (response?.registro?.status != "OK") status = 500;
     }
 
-    produto.sys_status = 1;
+    produto.sys_status = status;
     await prodTinyRepository.update(produto.id, produto);
-  }
+  } //for produtos
 }
 
 const AnuncioController = {

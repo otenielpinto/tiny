@@ -11,42 +11,30 @@ async function init() {
 }
 
 async function updateEstoqueLoteByTenant(tenant, anuncios) {
-  let estoqueRepository = new EstoqueRepository(
-    await TMongo.connect(),
-    tenant.id_tenant
-  );
-
-  let produtoTinyRepository = new ProdutoTinyRepository(
-    await TMongo.connect(),
-    tenant.id_tenant
-  );
-
-  let anuncioRepository = new AnuncioRepository(
-    await TMongo.connect(),
-    tenant.id_tenant
-  );
+  let c = await TMongo.connect();
+  let estoqueRepository = new EstoqueRepository(c, tenant.id_tenant);
+  let produtoTinyRepository = new ProdutoTinyRepository(c, tenant.id_tenant);
+  let anuncioRepository = new AnuncioRepository(c, tenant.id_tenant);
 
   //notifico todas as variacoes
-  let limite = 0;
+  let count = 0;
   for (let anuncio of anuncios) {
-    limite++;
+    count++;
     let rows = await estoqueRepository.findAll({
       codigo_anuncio: anuncio.codigo,
     });
-    if (limite > 100) break;
-    console.log(
-      `[${limite} ] update anuncio ` + anuncio.id + " " + anuncio.sku
-    );
+    if (count > 100) break;
+    console.log(`[${count} ] update anuncio ` + anuncio.id + " " + anuncio.sku);
 
+    let status = 1;
     for (let row of rows) {
       let payload = {
         sys_estoque: Number(row?.estoque ? row.estoque : 0),
       };
-
-      //estava gerando um erro , pois estava cadastrando
       let codigo = String(row?.id_produto);
       let r = await produtoTinyRepository.updateByCodigo(codigo, payload);
       if (!r) {
+        status = 500;
         await logService.saveLog({
           id_tenant: tenant.id_tenant,
           id_marketplace: tenant.id_marketplace,
@@ -55,11 +43,9 @@ async function updateEstoqueLoteByTenant(tenant, anuncios) {
           message: "Produto nao atualizado no Tiny " + codigo,
           payload: payload,
         });
-        await anuncioRepository.update(anuncio.id, { status: 500 });
-        continue;
       }
     }
-    await anuncioRepository.update(anuncio.id, { status: 1 });
+    await anuncioRepository.update(anuncio.id, { status: status });
   }
 }
 
