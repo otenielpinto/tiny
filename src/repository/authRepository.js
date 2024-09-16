@@ -1,13 +1,15 @@
 //Classe tem letras maiuculoas
 
-const collection = "tenant";
+const collection = "auth_tenant";
 
-class TenantRepository {
+class AuthRepository {
   constructor(db) {
     this.db = db;
   }
 
   async create(payload) {
+    let obj = this.findById(payload?.id);
+    if (obj) return null;
     const result = await this.db.collection(collection).insertOne(payload);
     return result.insertedId;
   }
@@ -28,6 +30,12 @@ class TenantRepository {
 
   async findAll(criterio = {}) {
     return await this.db.collection(collection).find(criterio).toArray();
+  }
+
+  async validateCredentials(client_id, client_secret) {
+    return await this.db
+      .collection(collection)
+      .findOne({ client_id, client_secret });
   }
 
   async findById(id) {
@@ -52,4 +60,4 @@ class TenantRepository {
   }
 }
 
-export { TenantRepository };
+export { AuthRepository };

@@ -1,5 +1,5 @@
 import { lib } from "../utils/lib.js";
-import { Tiny } from "../services/tinyServices.js";
+import { Tiny } from "../services/tinyService.js";
 import { TMongo } from "../infra/mongoClient.js";
 import { EstoqueRepository } from "../repository/estoqueRepository.js";
 import { ProdutoTinyRepository } from "../repository/produtoTinyRepository.js";
@@ -78,7 +78,7 @@ async function produtoAtualizarEstoque(token, id_produto, quantity) {
   for (let t = 1; t < 5; t++) {
     console.log("Atualizando estoque " + t + "/5  " + id_produto);
     response = await tiny.post("produto.atualizar.estoque.php", data);
-    response = await lib.tratarRetorno(response, "registros");
+    response = await tiny.tratarRetorno(response, "registros");
     if (!response) continue;
     break;
   }

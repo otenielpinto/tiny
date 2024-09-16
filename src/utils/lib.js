@@ -120,7 +120,7 @@ async function extrairXmlNotaFiscal(obj) {
   let xml = "";
   try {
     xml = obj?.retorno?.xml_nfe;
-  } catch (error) {}
+  } catch (error) { }
   return xml;
 }
 
@@ -294,32 +294,11 @@ function getAlterado_apos(numero_dias = 0, hora = null) {
   return `alterado_apos=${formatDate(date, format)} ${hora}`;
 }
 
-async function tratarRetorno(response, prop) {
-  if (response.status == 429) {
-    console.log("Requisição bloqueada, aguardando 5 segundos...");
-    await lib.sleep(1000 * 10);
-    return null;
-  }
-
-  let result = null;
-  let retorno = response?.data?.retorno;
-  if (retorno?.status == "OK") {
-    return retorno[prop];
-  }
-
-  if (retorno?.status == "Erro") {
-    await lib.sleep(1000 * 10);
-    console.log(response?.data?.retorno?.erros);
-    return null;
-  }
-
-  console.log(response);
-
-  //tratar o cabecalho
+function toJson(obj) {
+  return JSON.stringify(obj);
 }
 
 export const lib = {
-  tratarRetorno,
   getAlterado_apos,
 
   config_id_integracao,
@@ -353,4 +332,5 @@ export const lib = {
   formatDateBr,
   dateBrToIso8601,
   formatDate,
+  toJson,
 };

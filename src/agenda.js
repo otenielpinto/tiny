@@ -1,15 +1,12 @@
 import { TMongo } from "./infra/mongoClient.js";
 import { lib } from "./utils/lib.js";
 import { AnuncioController } from "./controller/anuncioController.js";
-import { tenantController } from "./controller/tenantController.js";
-
 import nodeSchedule from "node-schedule";
 global.processandoNow = 0;
 
 async function task() {
   global.processandoNow = 1;
   //colocar aqui controller;
-
   await AnuncioController.init();
 
   global.processandoNow = 0;
@@ -20,7 +17,7 @@ async function init() {
   //Espaço reserva para testes ;
 
   // await AnuncioController.init();
-  // return;
+  //return;
 
   try {
     let time = process.env.CRON_JOB_TIME || 10; //tempo em minutos

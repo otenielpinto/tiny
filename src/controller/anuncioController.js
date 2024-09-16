@@ -1,13 +1,17 @@
 import { lib } from "../utils/lib.js";
 import { AnuncioRepository } from "../repository/anuncioRepository.js";
-import { Tiny } from "../services/tinyServices.js";
+import { Tiny } from "../services/tinyService.js";
 import { TMongo } from "../infra/mongoClient.js";
 import { ProdutoTinyRepository } from "../repository/produtoTinyRepository.js";
 import { EstoqueRepository } from "../repository/estoqueRepository.js";
 import { estoqueController } from "./estoqueController.js";
 import { marketplaceTypes } from "../types/marketplaceTypes.js";
-import { tenantController } from "./tenantController.js";
 import { systemService } from "../services/systemService.js";
+import { mpkIntegracaoController } from "./mpkIntegracaoController.js";
+
+const filterTiny = {
+  id_mktplace: marketplaceTypes.tiny,
+};
 
 async function init() {
   await importarProdutoTiny();
@@ -18,17 +22,15 @@ async function init() {
 }
 
 async function enviarEstoqueEcommerce() {
-  let tenants = await tenantController.findByMarkeplace(marketplaceTypes.tiny);
+  let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
     await retificarEstoqueByTenant(tenant);
   }
 }
 
 async function updateAnunciosByTenant(tenant) {
-  let anuncioRepository = new AnuncioRepository(
-    await TMongo.connect(),
-    tenant.id_tenant
-  );
+  const c = await TMongo.connect();
+  let anuncioRepository = new AnuncioRepository(c, tenant.id_tenant);
 
   let where = {
     id_tenant: tenant.id_tenant,
@@ -41,7 +43,7 @@ async function updateAnunciosByTenant(tenant) {
 }
 
 async function updateAnuncios() {
-  let tenants = await tenantController.findByMarkeplace(marketplaceTypes.tiny);
+  let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
     await updateAnunciosByTenant(tenant);
   }
@@ -76,7 +78,7 @@ async function importarProdutoTinyByTenant(tenant) {
         "Tentativa: " + t + "  Paginas: " + page_count + " de " + page
       );
       result = await tiny.post("produtos.pesquisa.php", data);
-      response = await lib.tratarRetorno(result, "produtos");
+      response = await tiny.tratarRetorno(result, "produtos");
       if (!response) continue;
       break;
     }
@@ -94,7 +96,8 @@ async function importarProdutoTinyByTenant(tenant) {
 }
 
 async function importarProdutoTiny() {
-  let tenants = await tenantController.findByMarkeplace(marketplaceTypes.tiny);
+  let tenants = await mpkIntegracaoController.findAll(filterTiny);
+
   let key = "importarProdutoTiny";
   for (let tenant of tenants) {
     if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
@@ -122,9 +125,8 @@ async function retificarEstoqueByTenant(tenant) {
     status = 1;
 
     for (let t = 1; t < 5; t++) {
-      console.log("Obtendo estoque " + t + "/5 " + produto.id);
       response = await tiny.post("produto.obter.estoque.php", data);
-      response = await lib.tratarRetorno(response, "produto");
+      response = await tiny.tratarRetorno(response, "produto");
       if (!response) continue;
       break;
     }

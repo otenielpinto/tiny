@@ -6,7 +6,7 @@ import lib from "../utils/lib.js";
 
 class Mude_nome_classe_Mapper {
   //Explicacao static ( nao preciso de instanciar a classe )
-  static toMercos(payload) {
+  static toTiny(payload) {
     return {};
   }
 }
