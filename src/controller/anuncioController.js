@@ -83,6 +83,7 @@ async function importarProdutoTinyByTenant(tenant) {
       result = await tiny.post("produtos.pesquisa.php", data);
       response = await tiny.tratarRetorno(result, "produtos");
       if (tiny.status() == "OK") break;
+      response = null;
     }
     let lote = [];
     if (!Array.isArray(response)) continue;
@@ -113,6 +114,7 @@ async function retificarEstoqueByTenant(tenant) {
   const prodTinyRepository = new ProdutoTinyRepository(c, id_tenant);
   const estoqueRepository = new EstoqueRepository(c, id_tenant);
   const tiny = new Tiny({ token: tenant.token });
+  tiny.setTimeout(1000 * 10);
 
   const produtos = await prodTinyRepository.findAll({
     sys_status: 0,
@@ -130,7 +132,7 @@ async function retificarEstoqueByTenant(tenant) {
       response = await tiny.post("produto.obter.estoque.php", data);
       response = await tiny.tratarRetorno(response, "produto");
       if (tiny.status() == "OK") break;
-      break;
+      response = null;
     }
 
     if (!response) {

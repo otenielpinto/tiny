@@ -54,7 +54,7 @@ class Tiny {
     }
 
     if (retorno?.status == "Erro") {
-      console.log(response?.data?.retorno[prop]);
+      console.log(response?.data);
       await sleep(this.timeout);
       return response?.data;
     }
