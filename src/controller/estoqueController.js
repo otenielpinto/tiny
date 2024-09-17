@@ -79,8 +79,7 @@ async function produtoAtualizarEstoque(token, id_produto, quantity) {
     console.log("Atualizando estoque " + t + "/5  " + id_produto);
     response = await tiny.post("produto.atualizar.estoque.php", data);
     response = await tiny.tratarRetorno(response, "registros");
-    if (!response) continue;
-    break;
+    if (tiny.status() == "OK") return response;
   }
 
   return response;

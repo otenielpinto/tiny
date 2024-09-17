@@ -16,7 +16,7 @@ async function task() {
 async function init() {
   //Espaço reserva para testes ;
 
-  // await AnuncioController.init();
+  //await AnuncioController.init();
   //return;
 
   try {

@@ -34,7 +34,7 @@ const update = async (req, res) => {
   const data = [{ key: "produto", value: { produtos: [payload] } }];
   let response = await tiny.post("produto.alterar.php", data);
   let result = await tiny.tratarRetorno(response, "registros");
-  if (!body?.id_anuncio_mktplace) {
+  if (!body?.id_anuncio_mktplace && tiny.status() == "OK") {
     if (Array.isArray(result)) {
       for (let item of result) {
         if (item?.registro?.id) body.id_anuncio_mktplace = item?.registro?.id

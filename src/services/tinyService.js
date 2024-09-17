@@ -6,9 +6,13 @@ function sleep(ms) {
 }
 
 class Tiny {
-  timeout = 0
+  timeout = 0;
+  local_status = "OK";
+  local_data = '';
   constructor({ token }) {
     this.token = token;
+    this.local_data = '';
+    this.local_status = '';
 
   }
   async get(url) {
@@ -35,7 +39,8 @@ class Tiny {
   }
 
   async tratarRetorno(response, prop) {
-
+    this.local_status = response?.data?.retorno?.status;
+    this.local_data = response?.data;
     if (response.status == 429) {
       console.log("Requisição bloqueada, aguardando 10 segundos...");
       await sleep(this.timeout);
@@ -55,6 +60,13 @@ class Tiny {
     }
     console.log(response);
     //tratar o cabecalho
+  }
+
+  async status() {
+    if (this.local_status !== "OK") {
+      console.log(this.local_data);
+    }
+    return this.local_status;
   }
 
 

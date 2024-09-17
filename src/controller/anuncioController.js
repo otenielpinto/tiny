@@ -9,7 +9,7 @@ import { marketplaceTypes } from "../types/marketplaceTypes.js";
 import { systemService } from "../services/systemService.js";
 import { mpkIntegracaoController } from "./mpkIntegracaoController.js";
 
-const filterTiny = {
+var filterTiny = {
   id_mktplace: marketplaceTypes.tiny,
 };
 
@@ -24,7 +24,9 @@ async function init() {
 async function enviarEstoqueEcommerce() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
+    console.log("Atualizando estoque Servidor Tiny do tenant " + tenant.id_tenant);
     await retificarEstoqueByTenant(tenant);
+    console.log("Fim do processamento do estoque Servidor Tiny do tenant " + tenant.id_tenant);
   }
 }
 
@@ -45,7 +47,9 @@ async function updateAnunciosByTenant(tenant) {
 async function updateAnuncios() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
+    console.log("Atualizando anuncios do tenant " + tenant.id_tenant);
     await updateAnunciosByTenant(tenant);
+    console.log("Fim do processamento do tenant " + tenant.id_tenant);
   }
 }
 
@@ -79,8 +83,7 @@ async function importarProdutoTinyByTenant(tenant) {
       );
       result = await tiny.post("produtos.pesquisa.php", data);
       response = await tiny.tratarRetorno(result, "produtos");
-      if (!response) continue;
-      break;
+      if (tiny.status() == "OK") break;
     }
     let lote = [];
     if (!Array.isArray(response)) continue;
@@ -127,7 +130,7 @@ async function retificarEstoqueByTenant(tenant) {
     for (let t = 1; t < 5; t++) {
       response = await tiny.post("produto.obter.estoque.php", data);
       response = await tiny.tratarRetorno(response, "produto");
-      if (!response) continue;
+      if (tiny.status() == "OK") break;
       break;
     }
 
