@@ -36,10 +36,9 @@ async function updateAnunciosByTenant(tenant) {
 
   let where = {
     id_tenant: tenant.id_tenant,
-    id_marketplace: tenant.id_marketplace,
+    id_marketplace: tenant.id_mktplace,
     status: 0,
   };
-
   let rows = await anuncioRepository.findAll(where);
   await estoqueController.updateEstoqueLoteByTenant(tenant, rows);
 }

@@ -37,7 +37,7 @@ async function updateEstoqueLoteByTenant(tenant, anuncios) {
         status = 500;
         await logService.saveLog({
           id_tenant: tenant.id_tenant,
-          id_marketplace: tenant.id_marketplace,
+          id_marketplace: tenant.id_mktplace,
           id_anuncio: anuncio.id,
           id_produto: codigo,
           message: "Produto nao atualizado no Tiny " + codigo,
