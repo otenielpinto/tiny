@@ -24,7 +24,7 @@ async function init() {
 async function enviarEstoqueEcommerce() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
-    console.log("Atualizando estoque Servidor Tiny do tenant " + tenant.id_tenant);
+    console.log("Inicio do processamento do estoque Servidor Tiny do tenant " + tenant.id_tenant);
     await retificarEstoqueByTenant(tenant);
     console.log("Fim do processamento do estoque Servidor Tiny do tenant " + tenant.id_tenant);
   }
@@ -46,7 +46,7 @@ async function updateAnunciosByTenant(tenant) {
 async function updateAnuncios() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
-    console.log("Atualizando anuncios do tenant " + tenant.id_tenant);
+    console.log("Inicio do processamento do tenant " + tenant.id_tenant);
     await updateAnunciosByTenant(tenant);
     console.log("Fim do processamento do tenant " + tenant.id_tenant);
   }
@@ -59,6 +59,7 @@ async function importarProdutoTinyByTenant(tenant) {
   );
 
   const tiny = new Tiny({ token: tenant.token });
+  tiny.setTimeout(1000 * 10);
   let page = 1;
   let data = [
     { key: "pesquisa", value: "" },
@@ -154,7 +155,8 @@ async function retificarEstoqueByTenant(tenant) {
       qt_estoque = Number(produto?.sys_estoque ? produto?.sys_estoque : 0);
     }
     let p = produto?.codigo;
-    console.log(`Estoque:${qt_estoque} EstoqueTiny:${saldo} ${produto.tipoVariacao} P=${p}`);
+    let t = produto?.tipoVariacao;
+    console.log(`Estoque:${qt_estoque} EstoqueTiny:${saldo} ${t} P=${p}`);
 
     if (qt_estoque != saldo && produto.tipoVariacao != "P") {
       response = await estoqueController.produtoAtualizarEstoque(

@@ -11,6 +11,7 @@ async function task() {
 
   global.processandoNow = 0;
   console.log(" Fim do processamento rotina task " + lib.currentDateTimeStr());
+  console.log('*'.repeat(60));
 }
 
 async function init() {

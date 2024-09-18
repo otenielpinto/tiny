@@ -23,7 +23,7 @@ async function updateEstoqueLoteByTenant(tenant, anuncios) {
     let rows = await estoqueRepository.findAll({
       codigo_anuncio: anuncio.codigo,
     });
-    if (count > 100) break;
+    if (count > 300) break;
     console.log(`[${count} ] update anuncio ` + anuncio.id + " " + anuncio.sku);
 
     let status_anuncio = 1;
