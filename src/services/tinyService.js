@@ -74,7 +74,7 @@ class Tiny {
   setTimeout(timeout) {
     if (timeout > 0) {
       this.timeout = timeout;
-      console.log(`Requisição bloqueada, aguardando ${timeout / 1000} segundos...`);
+      console.log('Timeout setado para ', timeout)
     }
   }
 }

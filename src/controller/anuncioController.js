@@ -153,11 +153,10 @@ async function retificarEstoqueByTenant(tenant) {
     } else {
       qt_estoque = Number(produto?.sys_estoque ? produto?.sys_estoque : 0);
     }
-    console.log(`Estoque:${qt_estoque} EstoqueTiny:${saldo} ${produto.tipoVariacao}`);
-
+    let p = produto?.codigo;
+    console.log(`Estoque:${qt_estoque} EstoqueTiny:${saldo} ${produto.tipoVariacao} P=${p}`);
 
     if (qt_estoque != saldo && produto.tipoVariacao != "P") {
-      console.log(separador);
       response = await estoqueController.produtoAtualizarEstoque(
         tenant.token,
         produto.id,
@@ -166,6 +165,7 @@ async function retificarEstoqueByTenant(tenant) {
 
       if (response?.registro?.status != "OK") status = 500;
     }
+    console.log(separador);
 
     produto.sys_status = status;
     if (produto.sys_status == 500) {
