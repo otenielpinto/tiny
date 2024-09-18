@@ -2,6 +2,7 @@ import { tinyApi } from "../api/tinyApi.js";
 
 //fiz aqui pra nao ter a dependencia da lib
 function sleep(ms) {
+  console.log(`Requisição bloqueada, aguardando ${ms / 1000} segundos...`);
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -42,7 +43,6 @@ class Tiny {
     this.local_status = response?.data?.retorno?.status;
     this.local_data = response?.data;
     if (response.status == 429) {
-      console.log("Requisição bloqueada, aguardando 10 segundos...");
       await sleep(this.timeout);
       return response?.data;
     }
@@ -54,7 +54,7 @@ class Tiny {
     }
 
     if (retorno?.status == "Erro") {
-      console.log(response?.data);
+      console.log(JSON.stringify(response?.data));
       await sleep(this.timeout);
       return response?.data;
     }
@@ -62,7 +62,8 @@ class Tiny {
     //tratar o cabecalho
   }
 
-  async status() {
+  status() {
+    console.log(this.local_status);
     if (this.local_status !== "OK") {
       console.log(this.local_data);
     }
@@ -70,10 +71,12 @@ class Tiny {
   }
 
 
-  async setTimeout(timeout) {
-    this.timeout = timeout;
+  setTimeout(timeout) {
+    if (timeout > 0) {
+      this.timeout = timeout;
+      console.log(`Requisição bloqueada, aguardando ${timeout / 1000} segundos...`);
+    }
   }
-
 }
 
 export { Tiny };

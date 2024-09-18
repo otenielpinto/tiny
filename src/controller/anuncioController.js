@@ -120,6 +120,7 @@ async function retificarEstoqueByTenant(tenant) {
     sys_status: 0,
     id_tenant: id_tenant,
   });
+  let separador = '*'.repeat(100);
 
   let response = null;
   let status = 1;
@@ -134,6 +135,7 @@ async function retificarEstoqueByTenant(tenant) {
       if (tiny.status() == "OK") break;
       response = null;
     }
+
 
     if (!response) {
       produto.sys_status = 500;
@@ -151,9 +153,11 @@ async function retificarEstoqueByTenant(tenant) {
     } else {
       qt_estoque = Number(produto?.sys_estoque ? produto?.sys_estoque : 0);
     }
-    console.log(`Estoque:${qt_estoque} Saldo:${saldo} ${produto.tipoVariacao}`);
+    console.log(`Estoque:${qt_estoque} EstoqueTiny:${saldo} ${produto.tipoVariacao}`);
+
 
     if (qt_estoque != saldo && produto.tipoVariacao != "P") {
+      console.log(separador);
       response = await estoqueController.produtoAtualizarEstoque(
         tenant.token,
         produto.id,
@@ -164,6 +168,12 @@ async function retificarEstoqueByTenant(tenant) {
     }
 
     produto.sys_status = status;
+    if (produto.sys_status == 500) {
+      console.log(separador);
+      console.log("Produto nao atualizado no Tiny " + produto.id);
+      console.log(separador);
+    }
+
     await prodTinyRepository.update(produto.id, produto);
   } //for produtos
 }

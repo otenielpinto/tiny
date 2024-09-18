@@ -26,15 +26,15 @@ async function updateEstoqueLoteByTenant(tenant, anuncios) {
     if (count > 100) break;
     console.log(`[${count} ] update anuncio ` + anuncio.id + " " + anuncio.sku);
 
-    let status = 1;
+    let status_anuncio = 1;
     for (let row of rows) {
       let payload = {
         sys_estoque: Number(row?.estoque ? row.estoque : 0),
       };
       let codigo = String(row?.id_produto);
       let r = await produtoTinyRepository.updateByCodigo(codigo, payload);
+
       if (!r) {
-        status = 500;
         await logService.saveLog({
           id_tenant: tenant.id_tenant,
           id_marketplace: tenant.id_mktplace,
@@ -45,7 +45,7 @@ async function updateEstoqueLoteByTenant(tenant, anuncios) {
         });
       }
     }
-    await anuncioRepository.update(anuncio.id, { status: status });
+    await anuncioRepository.update(anuncio.id, { status: status_anuncio });
   }
 }
 
@@ -72,6 +72,7 @@ async function produtoAtualizarEstoque(token, id_produto, quantity) {
   };
 
   const tiny = new Tiny({ token: token });
+  tiny.setTimeout(1000 * 10);
   let response = null;
   const data = [{ key: "estoque", value: { estoque } }];
 
