@@ -17,6 +17,8 @@ async function init() {
   await importarProdutoTiny();
   await updateAnuncios();
 
+  //atualizar novos produtos cadastrados no tiny  5 minutos
+
   //tem que ser por ultimo porque depende de updateAnuncios
   await enviarEstoqueEcommerce();
 }

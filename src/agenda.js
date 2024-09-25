@@ -10,7 +10,7 @@ async function task() {
   await AnuncioController.init();
 
   global.processandoNow = 0;
-  console.log(" Fim do processamento rotina task " + lib.currentDateTimeStr());
+  console.log(" Job finished - task " + lib.currentDateTimeStr());
   console.log('*'.repeat(60));
 }
 
