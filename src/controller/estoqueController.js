@@ -87,10 +87,30 @@ async function produtoAtualizarEstoque(token, id_produto, quantity) {
   return response;
 }
 
+
+async function zerarEstoqueGeral(tenant) {
+  let c = await TMongo.connect();
+  let produtoTinyRepository = new ProdutoTinyRepository(c, tenant.id_tenant);
+  let criterio = {
+    id_tenant: tenant.id_tenant,
+    sys_status: 0,
+  }
+
+  let rows = await produtoTinyRepository.findAll(criterio);
+  for (let row of rows) {
+    console.log("Zerando estoque geral " + row.id + " " + row.codigo);
+    let quantidade = 0;
+    await produtoAtualizarEstoque(tenant.token, row.id, quantidade);
+    row.sys_status = 1;
+    await produtoTinyRepository.update(row.id, row);
+  }
+}
+
 const estoqueController = {
   init,
   produtoAtualizarEstoque,
   updateEstoqueLoteByTenant,
+  zerarEstoqueGeral,
 };
 
 export { estoqueController };

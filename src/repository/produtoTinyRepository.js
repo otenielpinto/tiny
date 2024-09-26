@@ -1,4 +1,5 @@
 //Classe tem letras maiuculoas
+import { lib } from "../utils/lib.js";
 
 const collection = "tmp_produto_tiny";
 
@@ -22,6 +23,9 @@ class ProdutoTinyRepository {
     if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
     if (!payload.sys_status) payload.sys_status = 0;
     payload.updated_at = new Date();
+    payload.sys_codigo = String(Number(lib.onlyNumber(payload?.codigo)));
+
+
     const result = await this.db
       .collection(collection)
       .updateOne(

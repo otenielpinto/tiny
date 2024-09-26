@@ -13,14 +13,26 @@ var filterTiny = {
   id_mktplace: marketplaceTypes.tiny,
 };
 
+async function zerarEstoqueGeralTiny() {
+  let tenants = await mpkIntegracaoController.findAll(filterTiny);
+  for (let tenant of tenants) {
+    console.log("Inicio do processamento do zerar estoque geral do tenant " + tenant.id_tenant);
+    await estoqueController.zerarEstoqueGeral(tenant);
+    console.log("Fim do processamento do estoque Servidor Tiny do tenant " + tenant.id_tenant);
+  }
+}
+
 async function init() {
   await importarProdutoTiny();
-  await updateAnuncios();
+  await zerarEstoqueGeralTiny();
+
+
+  //await updateAnuncios();
 
   //atualizar novos produtos cadastrados no tiny  5 minutos
 
   //tem que ser por ultimo porque depende de updateAnuncios
-  await enviarEstoqueEcommerce();
+  //await enviarEstoqueEcommerce();
 }
 
 async function enviarEstoqueEcommerce() {
