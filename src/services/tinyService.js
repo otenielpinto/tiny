@@ -46,8 +46,6 @@ class Tiny {
       await sleep(this.timeout);
       return response?.data;
     }
-
-    let result = null;
     let retorno = response?.data?.retorno;
     if (retorno?.status == "OK") {
       return retorno[prop];
@@ -55,27 +53,24 @@ class Tiny {
 
     if (retorno?.status == "Erro" || retorno?.status == "Parcial") {
       console.log(JSON.stringify(response?.data));
-      await sleep(this.timeout);
+      if (retorno?.status == "Erro") {
+        await sleep(this.timeout);
+      }
       return response?.data;
     }
-
-    console.log(response?.data);
   }
 
   status() {
-    console.log(this.local_status);
     if (this.local_status !== "OK") {
       console.log(this.local_data);
     }
     return this.local_status;
   }
 
-
   setTimeout(timeout) {
-    if (timeout > 0) {
-      this.timeout = timeout;
+    if (timeout > 0)
       console.log('Timeout setado para ', timeout)
-    }
+    this.timeout = timeout;
   }
 }
 
