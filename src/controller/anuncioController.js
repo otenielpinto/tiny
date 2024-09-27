@@ -15,6 +15,7 @@ var filterTiny = {
 
 
 async function init() {
+
   await importarProdutoTiny();
 
   //zerar estoque geral  (provisorio 26-09-2024 )
@@ -101,6 +102,7 @@ async function modificarStatusEstoque(tenant) {
   const c = await TMongo.connect();
   const estoqueRepository = new EstoqueRepository(c, tenant.id_tenant);
   const estoqueTiny = new ProdutoTinyRepository(c, tenant.id_tenant);
+  const separador = '*'.repeat(100);
 
   let rows = await estoqueRepository.findAll({ status: 0, id_tenant: tenant.id_tenant, id_integracao: tenant.id });
   for (let row of rows) {
@@ -113,9 +115,11 @@ async function modificarStatusEstoque(tenant) {
     let r = await estoqueTiny.updateBySysCodigo(sys_codigo, { sys_estoque, sys_status });
     if (!r) r = await estoqueTiny.updateByCodigo(sys_codigo, { sys_estoque, sys_status });
     if (!r) {
-      console.log("Erro ao atualizar estoque no Tiny " + sys_codigo);
-      await estoqueController.produtoAtualizarEstoque(tenant.token, row.id_variant_mktplace, 0);
-      continue; //se nao atualizar no tiny, vai para o proximo
+      console.log("Produto não encontrado no Tiny " + sys_codigo);
+      if (row.id_variant_mktplace && row.id_variant_mktplace != '') {
+        await estoqueController.produtoAtualizarEstoque(tenant.token, row.id_variant_mktplace, 0);
+      }
+      console.log(separador);
     }
 
     //atualizar status estoque
