@@ -24,7 +24,7 @@ async function init() {
   await atualizarPrecoVendaTiny();
 
   //atualizar novos produtos cadastrados no tiny  5 minutos
-  //await enviarEstoqueEcommerce();
+  await enviarEstoqueEcommerce();
 }
 
 async function zerarEstoqueGeralTiny() {
