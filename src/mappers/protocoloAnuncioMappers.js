@@ -31,11 +31,12 @@ async function listOfVariations(variations, preco, preco_promocional) {
 async function toTiny(payload) {
   let new_codigo = "X" + payload.sku;
   let id_storage = await getIdStorage(payload);
+  //criar opcao para enviar ou nao a cor na descricao do produto
 
   let produto = {
     sequencia: "1",
     codigo: new_codigo,
-    nome: payload?.descricao_base,
+    nome: payload?.descricao_base + " " + payload?.nome_cor,
     unidade: payload?.unidade,
     preco: payload.preco,
     ncm: payload?.ncm,
@@ -74,7 +75,7 @@ async function toTiny(payload) {
     let imagens_externas = []
     let storage = `https://www.superempresarial.com.br/storage/${id_storage}/`;
     for (let i = 1; i <= qtd_imagens; i++) {
-      let link = `${storage}${payload.sku}-${i}.jpg`;
+      let link = `${storage}${payload?.sku}-${i}.jpg`;
       let obj = { imagem_externa: { url: link } }
       imagens_externas.push(obj)
     }

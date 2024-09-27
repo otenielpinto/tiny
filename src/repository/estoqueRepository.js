@@ -14,6 +14,7 @@ class EstoqueRepository {
   }
 
   async update(codigo, payload) {
+    payload.updated_at = new Date();
     const result = await this.db
       .collection(collection)
       .updateOne(
@@ -36,13 +37,13 @@ class EstoqueRepository {
   }
 
   async findById(id) {
-    return await this.db.collection(collection).findOne({ id: Number(id) });
+    return await this.db.collection(collection).findOne({ id: Number(id), id_tenant: this.id_tenant });
   }
 
   async findByIdProduto(id_produto) {
     return await this.db
       .collection(collection)
-      .findOne({ id_produto: Number(id_produto) });
+      .findOne({ id_produto: Number(id_produto), id_tenant: this.id_tenant });
   }
 
   async insertMany(items) {

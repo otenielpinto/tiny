@@ -10,44 +10,6 @@ async function init() {
   //fazer uma atualizacao dos status =500  e tambem de todos que estão situacao =0
 }
 
-async function updateEstoqueLoteByTenant(tenant, anuncios) {
-  let c = await TMongo.connect();
-  let estoqueRepository = new EstoqueRepository(c, tenant.id_tenant);
-  let produtoTinyRepository = new ProdutoTinyRepository(c, tenant.id_tenant);
-  let anuncioRepository = new AnuncioRepository(c, tenant.id_tenant);
-
-  //notifico todas as variacoes
-  let count = 0;
-  for (let anuncio of anuncios) {
-    count++;
-    let rows = await estoqueRepository.findAll({
-      codigo_anuncio: anuncio.codigo,
-    });
-    if (count > 300) break;
-    console.log(`[${count} ] update anuncio ` + anuncio.id + " " + anuncio.sku);
-
-    let status_anuncio = 1;
-    for (let row of rows) {
-      let payload = {
-        sys_estoque: Number(row?.estoque ? row.estoque : 0),
-      };
-      let codigo = String(row?.id_produto);
-      let r = await produtoTinyRepository.updateByCodigo(codigo, payload);
-
-      if (!r) {
-        await logService.saveLog({
-          id_tenant: tenant.id_tenant,
-          id_marketplace: tenant.id_mktplace,
-          id_anuncio: anuncio.id,
-          id_produto: codigo,
-          message: "Produto nao atualizado no Tiny " + codigo,
-          payload: payload,
-        });
-      }
-    }
-    await anuncioRepository.update(anuncio.id, { status: status_anuncio });
-  }
-}
 
 //idProduto = id Tiny do Produto
 async function produtoAtualizarEstoque(token, id_produto, quantity) {
@@ -87,6 +49,26 @@ async function produtoAtualizarEstoque(token, id_produto, quantity) {
   return response;
 }
 
+async function atualizarPrecosLote(tenant, produtos) {
+  const tiny = new Tiny({ token: tenant.token });
+  tiny.setTimeout(1000 * 10);
+  let response = null;
+
+  let obj = {
+    precos: produtos
+  }
+  const data = [{ key: "data", value: obj }];
+
+  for (let t = 1; t < 5; t++) {
+    console.log("Atualizando precos em lote " + t + "/5  ");
+    response = await tiny.post("produto.atualizar.precos.php", data);
+    response = await tiny.tratarRetorno(response, "registros");
+    if (tiny.status() == "OK") return response;
+    response = null;
+  }
+  return response;
+}
+
 
 async function zerarEstoqueGeral(tenant) {
   let c = await TMongo.connect();
@@ -109,8 +91,8 @@ async function zerarEstoqueGeral(tenant) {
 const estoqueController = {
   init,
   produtoAtualizarEstoque,
-  updateEstoqueLoteByTenant,
   zerarEstoqueGeral,
+  atualizarPrecosLote,
 };
 
 export { estoqueController };

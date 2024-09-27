@@ -53,13 +53,13 @@ class Tiny {
       return retorno[prop];
     }
 
-    if (retorno?.status == "Erro") {
+    if (retorno?.status == "Erro" || retorno?.status == "Parcial") {
       console.log(JSON.stringify(response?.data));
       await sleep(this.timeout);
       return response?.data;
     }
-    console.log(response);
-    //tratar o cabecalho
+
+    console.log(response?.data);
   }
 
   status() {

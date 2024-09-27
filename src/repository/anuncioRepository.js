@@ -18,7 +18,7 @@ class AnuncioRepository {
   async update(id, payload) {
     if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
     if (!payload.updated_at) payload.updated_at = new Date();
-    if (!payload.status) payload.status = 0;
+
 
     const result = await this.db
       .collection(collection)
