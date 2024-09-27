@@ -205,12 +205,17 @@ async function processarEstoqueByTenant(tenant) {
   let separador = '*'.repeat(100);
   let response = null;
   let status = 1;
-  let count = 0;
+  let count_time_job = 0;
+  let record = 0;
+  let record_count = produtos?.length || 0;
   for (let produto of produtos) {
+    console.log(`Lendo: ${record++}/${record_count}`)
+    console.log(`Produto: ${produto.id}`)
+    console.log(separador)
     response = await obterProdutoEstoque(tiny, produto.id);
     let id_produto = Number(lib.onlyNumber(produto?.codigo));
     status = 1;
-    count++;
+    count_time_job++;
 
     let saldo_tiny = Number(response?.saldo ? response?.saldo : 0);
     let qt_estoque = Number(response?.sys_estoque ? response?.sys_estoque : 0);
@@ -220,8 +225,8 @@ async function processarEstoqueByTenant(tenant) {
     }
 
     //estoque geral pode ter sido atualizado por outro job
-    if (count > max_lote_job && qt_estoque > 0) {
-      count = 0;
+    if (count_time_job > max_lote_job && qt_estoque > 0) {
+      count_time_job = 0;
       response = await estoqueRepository.findByIdProduto(id_produto);
       let new_estoque = Number(response?.estoque ? response?.estoque : 0);
       if (new_estoque != qt_estoque) {
@@ -233,7 +238,7 @@ async function processarEstoqueByTenant(tenant) {
     let t = produto?.tipoVariacao;
     console.log(`Estoque:${qt_estoque} EstoqueTiny:${saldo_tiny} ${t} P=${p}`);
 
-    if (qt_estoque != saldo && produto.tipoVariacao != "P") {
+    if (qt_estoque != saldo_tiny && produto.tipoVariacao != "P") {
       response = await estoqueController.produtoAtualizarEstoque(
         tenant.token,
         produto.id,
