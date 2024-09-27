@@ -24,7 +24,7 @@ async function init() {
   await atualizarPrecoVendaTiny();
 
   //atualizar novos produtos cadastrados no tiny  5 minutos
-  await enviarEstoqueEcommerce();
+  //await enviarEstoqueEcommerce();
 }
 
 async function zerarEstoqueGeralTiny() {
@@ -49,9 +49,11 @@ async function atualizarPrecoVendaTiny() {
       status: 0,
     };
 
+
     let precos = []
     let lotes = [];
     let rows = await anuncioRepository.findAll(where);
+    console.log(rows.length);
 
     for (let row of rows) {
       if (row?.id_anuncio_mktplace) {
@@ -64,15 +66,15 @@ async function atualizarPrecoVendaTiny() {
       }
 
       if (precos.length == max_lote) {
-        let r = await estoqueController.atualizarPrecosLote(tenant, precos)
+        await estoqueController.atualizarPrecosLote(tenant, precos)
+        lotes = await processarLote(anuncioRepository, lotes)
         precos = []
-        if (r) lotes = await processarLote(anuncioRepository, lotes)
       }
     }
 
     if (precos.length > 0) {
-      let r = await estoqueController.atualizarPrecosLote(tenant, precos)
-      if (r) lotes = await processarLote(anuncioRepository, lotes)
+      await estoqueController.atualizarPrecosLote(tenant, precos)
+      lotes = await processarLote(anuncioRepository, lotes)
     }
   }
 }
