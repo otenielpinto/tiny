@@ -9,7 +9,6 @@ import { marketplaceTypes } from "../types/marketplaceTypes.js";
 import { systemService } from "../services/systemService.js";
 import { mpkIntegracaoController } from "./mpkIntegracaoController.js";
 
-
 var filterTiny = {
   id_mktplace: marketplaceTypes.tiny,
 };
@@ -20,8 +19,13 @@ async function init() {
     await atualizarEstoqueEcommerce();
     return;
   }
-
   await importarProdutoTiny();
+
+  //atualizar novos produtos cadastrados no tiny  5 minutos
+  /*
+   preciso monitorar a tabela de produtos do tiny
+  */
+
 
   //zerar estoque geral  (provisorio 26-09-2024 )
   // await zerarEstoqueGeralTiny();
@@ -29,8 +33,9 @@ async function init() {
   //atualizar precos em lote 
   await atualizarPrecoVendaTiny();
 
-  //atualizar novos produtos cadastrados no tiny  5 minutos
+  //atualizar estoque ecommerce
   await atualizarEstoqueEcommerce();
+
 
 }
 
@@ -209,6 +214,7 @@ async function processarEstoqueByTenant(tenant) {
   const estoqueRepository = new EstoqueRepository(c, id_tenant);
   const tiny = new Tiny({ token: tenant.token });
   tiny.setTimeout(1000 * 10);
+  let dateStart = lib.currentDateTimeStr();
 
   const produtos = await prodTinyRepository.findAll({
     sys_status: 0,
@@ -221,7 +227,7 @@ async function processarEstoqueByTenant(tenant) {
   let record = 1;
   let record_count = produtos?.length || 0;
   for (let produto of produtos) {
-    console.log(`Lendo: ${record++}/${record_count}`)
+    console.log(`Lendo: ${record++}/${record_count}    Inicio: ${dateStart}`)
     console.log(`Produto: ${produto.id}`)
     response = await obterProdutoEstoque(tiny, produto.id);
     let id_produto = Number(lib.onlyNumber(produto?.codigo));

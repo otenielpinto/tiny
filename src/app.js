@@ -12,6 +12,7 @@ import { authRoutes } from "./routes/authRoutes.js";
 import { mpkIntegracaoRoutes } from "./routes/mpkIntegracaoRoutes.js";
 
 dotenv.config();
+process.env.TZ = "America/Sao_Paulo";
 
 const app = express();
 

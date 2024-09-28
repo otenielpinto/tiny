@@ -286,20 +286,12 @@ function config_id_marketplace() {
   return Number(process.env.CONFIG_ID_MARKETPLACE);
 }
 
-function getAlterado_apos(numero_dias = 0, hora = null) {
-  let date = new Date();
-  date.setDate(date.getDate() + numero_dias);
-  let format = "yyyy-MM-dd";
-  if (!hora) format = "yyyy-MM-dd HH:mm:ss";
-  return `alterado_apos=${formatDate(date, format)} ${hora}`;
-}
-
 function toJson(obj) {
   return JSON.stringify(obj);
 }
 
 export const lib = {
-  getAlterado_apos,
+
 
   config_id_integracao,
   config_modulo_server,

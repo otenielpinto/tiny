@@ -7,6 +7,7 @@ global.processandoNow = 0;
 async function task() {
   global.processandoNow = 1;
   //colocar aqui controller;
+  await TMongo.close();
   await AnuncioController.init();
 
   global.processandoNow = 0;
@@ -28,7 +29,6 @@ async function init() {
     let time = process.env.CRON_JOB_TIME || 10; //tempo em minutos
     const job = nodeSchedule.scheduleJob(`*/${time} * * * *`, async () => {
       console.log(" Job start as " + lib.currentDateTimeStr());
-      await TMongo.close();
 
       if (global.processandoNow == 1) {
         console.log(
