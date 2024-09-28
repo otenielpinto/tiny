@@ -9,12 +9,17 @@ import { marketplaceTypes } from "../types/marketplaceTypes.js";
 import { systemService } from "../services/systemService.js";
 import { mpkIntegracaoController } from "./mpkIntegracaoController.js";
 
+
 var filterTiny = {
   id_mktplace: marketplaceTypes.tiny,
 };
 
 
 async function init() {
+  if (global.config_debug == 1) {
+    await atualizarEstoqueEcommerce();
+    return;
+  }
 
   await importarProdutoTiny();
 
@@ -25,7 +30,8 @@ async function init() {
   await atualizarPrecoVendaTiny();
 
   //atualizar novos produtos cadastrados no tiny  5 minutos
-  await enviarEstoqueEcommerce();
+  await atualizarEstoqueEcommerce();
+
 }
 
 async function zerarEstoqueGeralTiny() {
@@ -88,7 +94,7 @@ async function processarLote(anuncioRepository, lotes) {
   return []
 }
 
-async function enviarEstoqueEcommerce() {
+async function atualizarEstoqueEcommerce() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
     console.log("Inicio do processamento do estoque Servidor Tiny do tenant " + tenant.id_tenant);
@@ -103,9 +109,11 @@ async function modificarStatusEstoque(tenant) {
   const estoqueRepository = new EstoqueRepository(c, tenant.id_tenant);
   const estoqueTiny = new ProdutoTinyRepository(c, tenant.id_tenant);
   const separador = '*'.repeat(100);
-
+  let record = 0;
   let rows = await estoqueRepository.findAll({ status: 0, id_tenant: tenant.id_tenant, id_integracao: tenant.id });
+  let record_count = rows?.length;
   for (let row of rows) {
+    console.log(`Lendo: ${record++}/${record_count}`)
     row.status = 1;
     let sys_codigo = String(row?.id_produto);
     let sys_estoque = Number(row?.estoque);
@@ -210,12 +218,11 @@ async function processarEstoqueByTenant(tenant) {
   let response = null;
   let status = 1;
   let count_time_job = 0;
-  let record = 0;
+  let record = 1;
   let record_count = produtos?.length || 0;
   for (let produto of produtos) {
     console.log(`Lendo: ${record++}/${record_count}`)
     console.log(`Produto: ${produto.id}`)
-    console.log(separador)
     response = await obterProdutoEstoque(tiny, produto.id);
     let id_produto = Number(lib.onlyNumber(produto?.codigo));
     status = 1;
@@ -243,6 +250,7 @@ async function processarEstoqueByTenant(tenant) {
     console.log(`Estoque:${qt_estoque} EstoqueTiny:${saldo_tiny} ${t} P=${p}`);
 
     if (qt_estoque != saldo_tiny && produto.tipoVariacao != "P") {
+      console.log(" E S T O Q U  E     A J U S T A D O  ! !  ");
       response = await estoqueController.produtoAtualizarEstoque(
         tenant.token,
         produto.id,
