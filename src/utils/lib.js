@@ -71,6 +71,7 @@ function addDays(date, days) {
 // Retorna somente numeros
 //-----------------------------------------------
 function onlyNumber(string) {
+  if (!string) string = String("");
   return string.replace(/[^0-9]/g, "");
 }
 

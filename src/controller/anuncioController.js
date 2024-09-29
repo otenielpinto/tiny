@@ -15,6 +15,8 @@ var filterTiny = {
 
 
 async function init() {
+
+
   if (global.config_debug == 1) {
     await atualizarEstoqueEcommerce();
     return;
@@ -26,7 +28,6 @@ async function init() {
    preciso monitorar a tabela de produtos do tiny
   */
 
-
   //zerar estoque geral  (provisorio 26-09-2024 )
   // await zerarEstoqueGeralTiny();
 
@@ -35,7 +36,6 @@ async function init() {
 
   //atualizar estoque ecommerce
   await atualizarEstoqueEcommerce();
-
 
 }
 
@@ -178,7 +178,7 @@ async function importarProdutoTinyByTenant(tenant) {
 
     if (!Array.isArray(response)) continue;
     for (let item of response) {
-      await produtoTinyRepository.update(item.id, item);
+      await produtoTinyRepository.update(item?.id, item?.produto ? item?.produto : {});
     }
   }
 }
@@ -188,7 +188,7 @@ async function importarProdutoTiny() {
 
   let key = "importarProdutoTiny";
   for (let tenant of tenants) {
-    if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
+    //   if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
     await importarProdutoTinyByTenant(tenant);
   }
 }
