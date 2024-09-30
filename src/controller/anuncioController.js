@@ -13,10 +13,7 @@ var filterTiny = {
   id_mktplace: marketplaceTypes.tiny,
 };
 
-
 async function init() {
-
-
   if (global.config_debug == 1) {
     await atualizarEstoqueEcommerce();
     return;
@@ -31,20 +28,25 @@ async function init() {
   //zerar estoque geral  (provisorio 26-09-2024 )
   // await zerarEstoqueGeralTiny();
 
-  //atualizar precos em lote 
+  //atualizar precos em lote
   await atualizarPrecoVendaTiny();
 
   //atualizar estoque ecommerce
   await atualizarEstoqueEcommerce();
-
 }
 
 async function zerarEstoqueGeralTiny() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
-    console.log("Inicio do processamento do zerar estoque geral do tenant " + tenant.id_tenant);
+    console.log(
+      "Inicio do processamento do zerar estoque geral do tenant " +
+      tenant.id_tenant
+    );
     await estoqueController.zerarEstoqueGeral(tenant);
-    console.log("Fim do processamento do estoque Servidor Tiny do tenant " + tenant.id_tenant);
+    console.log(
+      "Fim do processamento do estoque Servidor Tiny do tenant " +
+      tenant.id_tenant
+    );
   }
 }
 
@@ -53,7 +55,6 @@ async function atualizarPrecoVendaTiny() {
   let max_lote = 20;
   const c = await TMongo.connect();
   for (let tenant of tenants) {
-
     let anuncioRepository = new AnuncioRepository(c, tenant.id_tenant);
     let where = {
       id_tenant: tenant.id_tenant,
@@ -61,11 +62,9 @@ async function atualizarPrecoVendaTiny() {
       status: 0,
     };
 
-
-    let precos = []
+    let precos = [];
     let lotes = [];
     let rows = await anuncioRepository.findAll(where);
-    console.log(rows.length);
 
     for (let row of rows) {
       if (row?.id_anuncio_mktplace) {
@@ -73,20 +72,20 @@ async function atualizarPrecoVendaTiny() {
         precos.push({
           id: String(row.id_anuncio_mktplace),
           preco: String(row.preco),
-          preco_promocional: String(row.preco_promocional)
-        })
+          preco_promocional: String(row.preco_promocional),
+        });
       }
 
       if (precos.length == max_lote) {
-        await estoqueController.atualizarPrecosLote(tenant, precos)
-        lotes = await processarLote(anuncioRepository, lotes)
-        precos = []
+        await estoqueController.atualizarPrecosLote(tenant, precos);
+        lotes = await processarLote(anuncioRepository, lotes);
+        precos = [];
       }
     }
 
     if (precos.length > 0) {
-      await estoqueController.atualizarPrecosLote(tenant, precos)
-      lotes = await processarLote(anuncioRepository, lotes)
+      await estoqueController.atualizarPrecosLote(tenant, precos);
+      lotes = await processarLote(anuncioRepository, lotes);
     }
   }
 }
@@ -94,18 +93,24 @@ async function atualizarPrecoVendaTiny() {
 async function processarLote(anuncioRepository, lotes) {
   for (let row of lotes) {
     row.status = 1;
-    await anuncioRepository.update(row.id, row)
+    await anuncioRepository.update(row.id, row);
   }
-  return []
+  return [];
 }
 
 async function atualizarEstoqueEcommerce() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
-    console.log("Inicio do processamento do estoque Servidor Tiny do tenant " + tenant.id_tenant);
+    console.log(
+      "Inicio do processamento do estoque Servidor Tiny do tenant " +
+      tenant.id_tenant
+    );
     await modificarStatusEstoque(tenant);
     await processarEstoqueByTenant(tenant);
-    console.log("Fim do processamento do estoque Servidor Tiny do tenant " + tenant.id_tenant);
+    console.log(
+      "Fim do processamento do estoque Servidor Tiny do tenant " +
+      tenant.id_tenant
+    );
   }
 }
 
@@ -113,24 +118,39 @@ async function modificarStatusEstoque(tenant) {
   const c = await TMongo.connect();
   const estoqueRepository = new EstoqueRepository(c, tenant.id_tenant);
   const estoqueTiny = new ProdutoTinyRepository(c, tenant.id_tenant);
-  const separador = '*'.repeat(100);
+  const separador = "*".repeat(100);
   let record = 0;
-  let rows = await estoqueRepository.findAll({ status: 0, id_tenant: tenant.id_tenant, id_integracao: tenant.id });
+  let rows = await estoqueRepository.findAll({
+    status: 0,
+    id_tenant: tenant.id_tenant,
+    id_integracao: tenant.id,
+  });
   let record_count = rows?.length;
   for (let row of rows) {
-    console.log(`Lendo: ${record++}/${record_count}`)
+    console.log(`Lendo: ${record++}/${record_count}`);
     row.status = 1;
     let sys_codigo = String(row?.id_produto);
     let sys_estoque = Number(row?.estoque);
     let sys_status = 0;
 
-    //atualizar todos os codigos do tiny 
-    let r = await estoqueTiny.updateBySysCodigo(sys_codigo, { sys_estoque, sys_status });
-    if (!r) r = await estoqueTiny.updateByCodigo(sys_codigo, { sys_estoque, sys_status });
+    //atualizar todos os codigos do tiny
+    let r = await estoqueTiny.updateBySysCodigo(sys_codigo, {
+      sys_estoque,
+      sys_status,
+    });
+    if (!r)
+      r = await estoqueTiny.updateByCodigo(sys_codigo, {
+        sys_estoque,
+        sys_status,
+      });
     if (!r) {
       console.log("Produto não encontrado no Tiny " + sys_codigo);
-      if (row.id_variant_mktplace && row.id_variant_mktplace != '') {
-        await estoqueController.produtoAtualizarEstoque(tenant.token, row.id_variant_mktplace, 0);
+      if (row.id_variant_mktplace && row.id_variant_mktplace != "") {
+        await estoqueController.produtoAtualizarEstoque(
+          tenant.token,
+          row.id_variant_mktplace,
+          0
+        );
       }
       console.log(separador);
     }
@@ -139,7 +159,6 @@ async function modificarStatusEstoque(tenant) {
     await estoqueRepository.update(row.codigo, row);
   }
 }
-
 
 async function importarProdutoTinyByTenant(tenant) {
   let produtoTinyRepository = new ProdutoTinyRepository(
@@ -178,7 +197,10 @@ async function importarProdutoTinyByTenant(tenant) {
 
     if (!Array.isArray(response)) continue;
     for (let item of response) {
-      await produtoTinyRepository.update(item?.id, item?.produto ? item?.produto : {});
+      await produtoTinyRepository.update(
+        item?.id,
+        item?.produto ? item?.produto : {}
+      );
     }
   }
 }
@@ -188,7 +210,7 @@ async function importarProdutoTiny() {
 
   let key = "importarProdutoTiny";
   for (let tenant of tenants) {
-    //   if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
+    if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
     await importarProdutoTinyByTenant(tenant);
   }
 }
@@ -220,15 +242,15 @@ async function processarEstoqueByTenant(tenant) {
     sys_status: 0,
     id_tenant: id_tenant,
   });
-  let separador = '*'.repeat(100);
+  let separador = "*".repeat(100);
   let response = null;
   let status = 1;
   let count_time_job = 0;
   let record = 1;
   let record_count = produtos?.length || 0;
   for (let produto of produtos) {
-    console.log(`Lendo: ${record++}/${record_count}    Inicio: ${dateStart}`)
-    console.log(`Produto: ${produto.id}`)
+    console.log(`Lendo: ${record++}/${record_count}    Inicio: ${dateStart}`);
+    console.log(`Produto: ${produto.id}`);
     response = await obterProdutoEstoque(tiny, produto.id);
     let id_produto = Number(lib.onlyNumber(produto?.codigo));
     status = 1;
