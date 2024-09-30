@@ -40,12 +40,12 @@ async function zerarEstoqueGeralTiny() {
   for (let tenant of tenants) {
     console.log(
       "Inicio do processamento do zerar estoque geral do tenant " +
-      tenant.id_tenant
+        tenant.id_tenant
     );
     await estoqueController.zerarEstoqueGeral(tenant);
     console.log(
       "Fim do processamento do estoque Servidor Tiny do tenant " +
-      tenant.id_tenant
+        tenant.id_tenant
     );
   }
 }
@@ -103,13 +103,13 @@ async function atualizarEstoqueEcommerce() {
   for (let tenant of tenants) {
     console.log(
       "Inicio do processamento do estoque Servidor Tiny do tenant " +
-      tenant.id_tenant
+        tenant.id_tenant
     );
     await modificarStatusEstoque(tenant);
     await processarEstoqueByTenant(tenant);
     console.log(
       "Fim do processamento do estoque Servidor Tiny do tenant " +
-      tenant.id_tenant
+        tenant.id_tenant
     );
   }
 }
@@ -197,10 +197,9 @@ async function importarProdutoTinyByTenant(tenant) {
 
     if (!Array.isArray(response)) continue;
     for (let item of response) {
-      await produtoTinyRepository.update(
-        item?.id,
-        item?.produto ? item?.produto : {}
-      );
+      let obj = item?.produto ? item?.produto : {};
+      if (!obj?.id) continue;
+      await produtoTinyRepository.update(obj.id, obj);
     }
   }
 }

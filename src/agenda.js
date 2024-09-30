@@ -12,7 +12,7 @@ async function task() {
 
   global.processandoNow = 0;
   console.log(" Job finished - task " + lib.currentDateTimeStr());
-  console.log('*'.repeat(60));
+  console.log("*".repeat(60));
 }
 
 async function init() {
@@ -23,7 +23,6 @@ async function init() {
     await AnuncioController.init();
     return;
   }
-
 
   try {
     let time = process.env.CRON_JOB_TIME || 10; //tempo em minutos
