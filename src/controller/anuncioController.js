@@ -15,10 +15,12 @@ var filterTiny = {
 
 async function init() {
   if (global.config_debug == 1) {
+    return;
     await atualizarEstoqueEcommerce();
     return;
   }
   await importarProdutoTiny();
+  await importarProdutoTinyDiario();
 
   //atualizar novos produtos cadastrados no tiny  5 minutos
   /*
@@ -47,6 +49,24 @@ async function zerarEstoqueGeralTiny() {
       "Fim do processamento do estoque Servidor Tiny do tenant " +
         tenant.id_tenant
     );
+  }
+}
+
+async function importarProdutoTinyDiario() {
+  let tenants = await mpkIntegracaoController.findAll(filterTiny);
+  var hoje = lib.formatDateBr(new Date());
+  const c = await TMongo.connect();
+
+  for (let tenant of tenants) {
+    let response = await produtoPesquisaByDataCriacao(tenant, hoje);
+    if (!Array.isArray(response)) continue;
+    let produtoTinyRepository = new ProdutoTinyRepository(c, tenant.id_tenant);
+
+    for (let item of response) {
+      let obj = item?.produto ? item?.produto : {};
+      if (!obj?.id) continue;
+      await produtoTinyRepository.update(obj?.id, obj);
+    }
   }
 }
 
@@ -227,6 +247,22 @@ async function obterProdutoEstoque(tiny, id) {
   return response;
 }
 
+async function produtoPesquisaByDataCriacao(tenant, dataCriacao) {
+  const data = [{ key: "dataCriacao", value: dataCriacao }];
+  let response = null;
+
+  const tiny = new Tiny({ token: tenant.token });
+  tiny.setTimeout(1000 * 10);
+
+  for (let t = 1; t < 5; t++) {
+    response = await tiny.post("produtos.pesquisa.php", data);
+    response = await tiny.tratarRetorno(response, "produtos");
+    if (tiny.status() == "OK") break;
+    response = null;
+  }
+  return response;
+}
+
 async function processarEstoqueByTenant(tenant) {
   const c = await TMongo.connect();
   let id_tenant = Number(tenant.id_tenant);
@@ -302,6 +338,7 @@ async function processarEstoqueByTenant(tenant) {
 
 const AnuncioController = {
   init,
+  importarProdutoTinyDiario,
 };
 
 export { AnuncioController };

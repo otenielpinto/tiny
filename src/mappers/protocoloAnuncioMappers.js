@@ -1,9 +1,8 @@
 import { getIdStorage } from "../controller/mpkIntegracaoController.js";
 
-
 async function listOfVariations(variations, preco, preco_promocional) {
-  if (!variations) return []
-  let variacoes = []
+  if (!variations) return [];
+  let variacoes = [];
 
   for (let v of variations) {
     let obj = {
@@ -14,9 +13,9 @@ async function listOfVariations(variations, preco, preco_promocional) {
         estoque_atual: v.estoque || 0,
         grade: {
           Tamanho: v.tamanho,
-          Cor: v.nome_cor
-        }
-      }
+          Cor: v.nome_cor,
+        },
+      },
     };
 
     if (v?.id_variant_mktplace) {
@@ -58,33 +57,38 @@ async function toTiny(payload) {
     motivo_isencao: "",
     descricao_complementar: payload?.detalhes_html,
     obs: `T7Ti`,
-  }
+  };
 
   if (payload?.id_anuncio_mktplace || payload?.id_anuncio_mktplace !== "") {
-    produto.id = payload.id_anuncio_mktplace
+    produto.id = payload.id_anuncio_mktplace;
   }
-
 
   let variacoes = [];
   if (payload?.variacoes) {
-    variacoes = await listOfVariations(payload.variacoes, payload.preco, payload.preco_promocional);
+    variacoes = await listOfVariations(
+      payload.variacoes,
+      payload.preco,
+      payload.preco_promocional
+    );
     produto.variacoes = variacoes;
   }
-  let qtd_imagens = payload?.qtd_imagens || 0;
-  if (qtd_imagens > 0) {
-    let imagens_externas = []
+
+  let qtd_images = payload?.qtd_images || 0;
+  if (qtd_images > 0) {
+    let imagens_externas = [];
     let storage = `https://www.superempresarial.com.br/storage/${id_storage}/`;
-    for (let i = 1; i <= qtd_imagens; i++) {
+    for (let i = 1; i <= qtd_images; i++) {
       let link = `${storage}${payload?.sku}-${i}.jpg`;
-      let obj = { imagem_externa: { url: link } }
-      imagens_externas.push(obj)
+      let obj = { imagem_externa: { url: link } };
+      imagens_externas.push(obj);
     }
-    produto.imagens_externas = imagens_externas
+
+    produto.imagens_externas = imagens_externas;
   }
 
-  let obj = { produto: produto }
+  let obj = { produto: produto };
   return obj;
 }
 
-const ProtocoloAnuncioMapper = { toTiny, listOfVariations }
+const ProtocoloAnuncioMapper = { toTiny, listOfVariations };
 export { ProtocoloAnuncioMapper };
