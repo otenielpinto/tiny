@@ -19,13 +19,10 @@ async function init() {
     await atualizarEstoqueEcommerce();
     return;
   }
+  //carga geral todos os dias 1 x ao dia
   await importarProdutoTiny();
-  await importarProdutoTinyDiario();
-
   //atualizar novos produtos cadastrados no tiny  5 minutos
-  /*
-   preciso monitorar a tabela de produtos do tiny
-  */
+  await importarProdutoTinyDiario();
 
   //zerar estoque geral  (provisorio 26-09-2024 )
   // await zerarEstoqueGeralTiny();

@@ -3,10 +3,12 @@ import {
   TProtocolo,
 } from "../repository/protocoloAnuncioRepository.js";
 import { ProtocoloAnuncioMapper } from "../mappers/protocoloAnuncioMappers.js";
+import { produtoTinyController } from "./produtoTinyController.js";
 
 import { Tiny } from "../services/tinyService.js";
 import { getToken } from "./mpkIntegracaoController.js";
 import { TResponseService } from "../services/responseService.js";
+import { lib } from "../utils/lib.js";
 
 async function existsProduto(body) {
   let payload = await ProtocoloAnuncioMapper.toTiny(body);
@@ -28,6 +30,57 @@ async function existsProduto(body) {
 
   return result;
 }
+
+const retificarAnuncio = async (req, res) => {
+  const body = req?.body || {};
+  let codigo = lib.onlyNumber(body.codigo);
+  let id_tenant = body.id_tenant;
+  let id_integracao = body.id_integracao;
+  let idProdutoPai = null;
+  let result = null;
+  let items = await produtoTinyController.findAll(codigo, id_tenant);
+
+  if (!Array.isArray(items)) {
+    TResponseService.send(req, res, { message: "Produto não encontrado" });
+    return;
+  }
+
+  for (let item of items) {
+    let body = {
+      id_integracao,
+      id_tenant,
+      id_anuncio_mktplace: item.id,
+    };
+    let p = await obterProdutoTiny(body);
+    if (!p) {
+      result = { message: `Produto ${item.id} não encontrado` };
+      continue;
+    }
+
+    if (p.situacao != "A") {
+      result = { message: `Produto ${p.id} foi excluido` };
+      continue;
+    }
+
+    if (p.idProdutoPai) idProdutoPai = p.idProdutoPai;
+    result = p;
+  }
+
+  //preciso buscar o produto pai para devolver toda a variação
+  if (idProdutoPai) {
+    let body = {
+      id_integracao,
+      id_tenant,
+      id_anuncio_mktplace: idProdutoPai,
+    };
+    let p = await obterProdutoTiny(body);
+    if (p) {
+      result = p;
+    }
+  }
+
+  TResponseService.send(req, res, result);
+};
 
 const create = async (req, res) => {
   const body = req?.body || {};
@@ -59,8 +112,8 @@ const create = async (req, res) => {
 
 const update = async (req, res) => {
   const body = req.body;
-
   let payload = await ProtocoloAnuncioMapper.toTiny(body);
+
   let tiny = new Tiny({ token: await getToken(body).then((t) => t.token) });
   const data = [{ key: "produto", value: { produtos: [payload] } }];
   let response = await tiny.post("produto.alterar.php", data);
@@ -144,6 +197,7 @@ const doDelete = async (req, res) => {
 };
 
 const protocoloAnuncioController = {
+  retificarAnuncio,
   updateAnuncio,
   create,
   update,

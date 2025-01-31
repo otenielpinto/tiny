@@ -13,7 +13,6 @@ import { mpkIntegracaoRoutes } from "./routes/mpkIntegracaoRoutes.js";
 
 dotenv.config();
 process.env.TZ = "America/Sao_Paulo";
-
 const app = express();
 
 if (process.env.NODE_ENV !== "production") {
