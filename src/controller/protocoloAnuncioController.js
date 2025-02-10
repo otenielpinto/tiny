@@ -33,6 +33,7 @@ async function existsProduto(body) {
 
 const retificarAnuncio = async (req, res) => {
   const body = req?.body || {};
+  console.log(body);
   let codigo = lib.onlyNumber(body.codigo);
   let id_tenant = body.id_tenant;
   let id_integracao = body.id_integracao;
@@ -45,39 +46,47 @@ const retificarAnuncio = async (req, res) => {
     return;
   }
 
+  let p = null;
   for (let item of items) {
     let body = {
       id_integracao,
       id_tenant,
       id_anuncio_mktplace: item.id,
     };
-    let p = await obterProdutoTiny(body);
+    p = await obterProdutoTiny(body);
     if (!p) {
       result = { message: `Produto ${item.id} não encontrado` };
       continue;
     }
 
-    if (p.situacao != "A") {
+    if (p.situacao === "E") {
       result = { message: `Produto ${p.id} foi excluido` };
       continue;
     }
 
-    if (p.idProdutoPai) idProdutoPai = p.idProdutoPai;
-    result = p;
+    if (p.situacao === "A") {
+      result = p;
+      idProdutoPai = null;
+      if (p.idProdutoPai) idProdutoPai = p.idProdutoPai;
+      if ((idProdutoPai = "0" || idProdutoPai === "")) idProdutoPai = null;
+      break;
+    }
   }
 
   //preciso buscar o produto pai para devolver toda a variação
+
   if (idProdutoPai) {
     let body = {
       id_integracao,
       id_tenant,
       id_anuncio_mktplace: idProdutoPai,
     };
-    let p = await obterProdutoTiny(body);
+    p = await obterProdutoTiny(body);
     if (p) {
       result = p;
     }
   }
+  console.log("o resultado final eh :", result);
 
   TResponseService.send(req, res, result);
 };
