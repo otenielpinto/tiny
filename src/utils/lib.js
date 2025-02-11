@@ -121,7 +121,7 @@ async function extrairXmlNotaFiscal(obj) {
   let xml = "";
   try {
     xml = obj?.retorno?.xml_nfe;
-  } catch (error) { }
+  } catch (error) {}
   return xml;
 }
 
@@ -291,9 +291,20 @@ function toJson(obj) {
   return JSON.stringify(obj);
 }
 
+function extrairAntesDoHifen(texto) {
+  // Encontra a posição do primeiro hífen
+  const posicaoHifen = texto.indexOf("-");
+
+  // Se encontrou o hífen, retorna a parte antes dele
+  if (posicaoHifen !== -1) {
+    return texto.substring(0, posicaoHifen);
+  }
+
+  // Se não houver hífen, retorna a string original
+  return texto;
+}
+
 export const lib = {
-
-
   config_id_integracao,
   config_modulo_server,
   config_modulo_client,
@@ -326,4 +337,5 @@ export const lib = {
   dateBrToIso8601,
   formatDate,
   toJson,
+  extrairAntesDoHifen,
 };
