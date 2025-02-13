@@ -290,7 +290,7 @@ async function processarEstoqueByTenant(tenant) {
 
       e.updated_at = updated_at = new Date();
       if (status == 200) {
-        e.status = 10;
+        e.status = 1; // 0- processar  1 - processado   10-concluido
         await estoqueRepository.update(e.codigo, e);
       }
 
