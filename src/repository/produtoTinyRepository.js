@@ -22,7 +22,7 @@ class ProdutoTinyRepository {
     if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
     payload.updated_at = new Date();
     let codigo = lib.extrairAntesDoHifen(String(payload?.codigo));
-    codigo = lib.onlyNumber(codigo);
+    codigo = String(Number(lib.onlyNumber(codigo)));
 
     payload.sys_codigo = codigo;
     if (!payload.sys_status) payload.sys_status = 200; //sempre que for atualizar o produto no tiny, o sys_status deve ser 200

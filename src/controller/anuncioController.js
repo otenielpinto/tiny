@@ -21,6 +21,10 @@ async function init() {
   }
   //carga geral todos os dias 1 x ao dia
   await importarProdutoTiny();
+
+  //exclua todos os produtos que foram excluido do tiny 1 x ao dia
+  await excluirProdutoTiny();
+
   //atualizar novos produtos cadastrados no tiny  5 minutos
   await importarProdutoTinyDiario();
 
@@ -221,6 +225,16 @@ async function importarProdutoTinyByTenant(tenant) {
   }
 }
 
+async function excluirProdutoTiny() {
+  let tenants = await mpkIntegracaoController.findAll(filterTiny);
+
+  let key = "excluirProdutoTiny";
+  for (let tenant of tenants) {
+    if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
+    await excluirProdutoTinyByTenant(tenant);
+  }
+}
+
 async function importarProdutoTiny() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
 
@@ -331,6 +345,53 @@ async function processarEstoqueByTenant(tenant) {
 
     await prodTinyRepository.update(produto.id, produto);
   } //for produtos
+}
+
+async function excluirProdutoTinyByTenant(tenant) {
+  let produtoTinyRepository = new ProdutoTinyRepository(
+    await TMongo.connect(),
+    tenant.id_tenant
+  );
+
+  const tiny = new Tiny({ token: tenant.token });
+  tiny.setTimeout(1000 * 10);
+  let page = 1;
+  let data = [
+    { key: "pesquisa", value: "" },
+    { key: "situacao", value: "E" },
+    { key: "pagina", value: page },
+  ];
+  let result = await tiny.post("produtos.pesquisa.php", data);
+  let page_count = result?.data?.retorno?.numero_paginas;
+
+  let response;
+  for (let page = page_count; page > 0; page--) {
+    data = [
+      { key: "pesquisa", value: "" },
+      { key: "situacao", value: "E" },
+      { key: "pagina", value: page },
+    ];
+    result = null;
+    response = null;
+
+    for (let t = 1; t < 5; t++) {
+      console.log(
+        "Tentativa: " + t + "  Paginas: " + page + " de " + page_count
+      );
+      result = await tiny.post("produtos.pesquisa.php", data);
+      response = await tiny.tratarRetorno(result, "produtos");
+      if (tiny.status() == "OK") break;
+      response = null;
+    }
+
+    if (!Array.isArray(response)) continue;
+    for (let item of response) {
+      let obj = item?.produto ? item?.produto : {};
+      if (!obj?.id) continue;
+      console.log("Excluindo produto ", obj.id);
+      await produtoTinyRepository.delete(obj.id);
+    }
+  }
 }
 
 const AnuncioController = {
