@@ -8,6 +8,7 @@ import { estoqueController } from "./estoqueController.js";
 import { marketplaceTypes } from "../types/marketplaceTypes.js";
 import { systemService } from "../services/systemService.js";
 import { mpkIntegracaoController } from "./mpkIntegracaoController.js";
+import { FilaEstoqueRepository } from "../repository/filaEstoqueRepository.js";
 
 var filterTiny = {
   id_mktplace: marketplaceTypes.tiny,
@@ -16,7 +17,7 @@ var filterTiny = {
 async function init() {
   if (global.config_debug == 1) {
     return;
-    await atualizarEstoqueEcommerce();
+    await atualizarEstoque();
     return;
   }
   //carga geral todos os dias 1 x ao dia
@@ -35,7 +36,7 @@ async function init() {
   await atualizarPrecoVendaTiny();
 
   //atualizar estoque ecommerce
-  await atualizarEstoqueEcommerce();
+  await atualizarEstoque();
 }
 
 async function zerarEstoqueGeralTiny() {
@@ -119,65 +120,19 @@ async function processarLote(anuncioRepository, lotes) {
   return [];
 }
 
-async function atualizarEstoqueEcommerce() {
+async function atualizarEstoque() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
     console.log(
       "Inicio do processamento do estoque Servidor Tiny do tenant " +
         tenant.id_tenant
     );
-    await modificarStatusEstoque(tenant);
+
     await processarEstoqueByTenant(tenant);
     console.log(
       "Fim do processamento do estoque Servidor Tiny do tenant " +
         tenant.id_tenant
     );
-  }
-}
-
-async function modificarStatusEstoque(tenant) {
-  const c = await TMongo.connect();
-  const estoqueRepository = new EstoqueRepository(c, tenant.id_tenant);
-  const estoqueTiny = new ProdutoTinyRepository(c, tenant.id_tenant);
-  const separador = "*".repeat(100);
-  let record = 0;
-  let rows = await estoqueRepository.findAll({
-    status: 0,
-    id_tenant: tenant.id_tenant,
-    id_integracao: tenant.id,
-  });
-  let record_count = rows?.length;
-  for (let row of rows) {
-    console.log(`Lendo: ${record++}/${record_count}`);
-    row.status = 1;
-    let sys_codigo = String(row?.id_produto);
-    let sys_estoque = Number(row?.estoque);
-    let sys_status = 0;
-
-    //atualizar todos os codigos do tiny
-    let r = await estoqueTiny.updateBySysCodigo(sys_codigo, {
-      sys_estoque,
-      sys_status,
-    });
-    if (!r)
-      r = await estoqueTiny.updateByCodigo(sys_codigo, {
-        sys_estoque,
-        sys_status,
-      });
-    if (!r) {
-      console.log("Produto não encontrado no Tiny " + sys_codigo);
-      if (row.id_variant_mktplace && row.id_variant_mktplace != "") {
-        await estoqueController.produtoAtualizarEstoque(
-          tenant.token,
-          row.id_variant_mktplace,
-          0
-        );
-      }
-      console.log(separador);
-    }
-
-    //atualizar status estoque
-    await estoqueRepository.update(row.codigo, row);
   }
 }
 
@@ -275,76 +230,77 @@ async function produtoPesquisaByDataCriacao(tenant, dataCriacao) {
 }
 
 async function processarEstoqueByTenant(tenant) {
+  const startTime = Date.now();
+  const maxDuration = 4 * 60 * 1000; // 4 minutes in milliseconds
+
+  //abrir uma conexao com mongodb
   const c = await TMongo.connect();
   let id_tenant = Number(tenant.id_tenant);
-  const max_lote_job = 100;
+
+  //database
   const prodTinyRepository = new ProdutoTinyRepository(c, id_tenant);
   const estoqueRepository = new EstoqueRepository(c, id_tenant);
+  const filaRepository = new FilaEstoqueRepository(c);
+
+  //interface comunicacao com api
   const tiny = new Tiny({ token: tenant.token });
   tiny.setTimeout(1000 * 10);
-  let dateStart = lib.currentDateTimeStr();
 
-  const produtos = await prodTinyRepository.findAll({
-    sys_status: 0,
+  //aqui vou buscar os produtos que estao pendentes de atualizacao  situacao = 0
+  const estoques = await estoqueRepository.findAll({
+    status: 0,
     id_tenant: id_tenant,
   });
-  let separador = "*".repeat(100);
-  let response = null;
-  let status = 1;
-  let count_time_job = 0;
-  let record = 1;
-  let record_count = produtos?.length || 0;
-  for (let produto of produtos) {
-    console.log(`Lendo: ${record++}/${record_count}    Inicio: ${dateStart}`);
-    console.log(`Produto: ${produto.id}`);
-    response = await obterProdutoEstoque(tiny, produto.id);
-    let id_produto = Number(lib.onlyNumber(produto?.codigo));
-    status = 1;
-    count_time_job++;
 
-    let saldo_tiny = Number(response?.saldo ? response?.saldo : 0);
-    let qt_estoque = Number(response?.sys_estoque ? response?.sys_estoque : 0);
-    if (!response || !response?.sys_estoque) {
-      response = await estoqueRepository.findByIdProduto(id_produto);
-      qt_estoque = Number(response?.estoque ? response?.estoque : 0);
+  //estou varrendo o estoque
+  for (let e of estoques) {
+    if (Date.now() - startTime > maxDuration) {
+      console.log("Tempo excedido. Saindo do loop principal.");
+      break;
     }
 
-    //estoque geral pode ter sido atualizado por outro job
-    if (count_time_job > max_lote_job && qt_estoque > 0) {
-      count_time_job = 0;
-      response = await estoqueRepository.findByIdProduto(id_produto);
-      let new_estoque = Number(response?.estoque ? response?.estoque : 0);
-      if (new_estoque != qt_estoque) {
-        qt_estoque = new_estoque;
+    let id_produto = e.id_produto;
+    let qt_estoque = e.estoque ? e.estoque : 0;
+
+    //aqui vou pesquisar na lista de produtos importados do tiny o id do tiny
+    //nao posso usar o id que vem na tabela de estoques porques o tiny muda o id no agrupamento de anuncio ....
+    let produtos = await prodTinyRepository.findAll({
+      sys_codigo: String(id_produto),
+      id_tenant: id_tenant,
+    });
+
+    //otenho a lista de produtos cadastrado  conforme mapeamento
+    let response = null;
+    let status = 200;
+    for (let p of produtos) {
+      //obtenho o estoque no tiny
+      response = await obterProdutoEstoque(tiny, p.id);
+      let saldo_tiny = Number(response?.saldo ? response?.saldo : 0);
+      status = 200;
+
+      if (qt_estoque != saldo_tiny && p.tipoVariacao != "P") {
+        response = await estoqueController.produtoAtualizarEstoque(
+          tenant.token,
+          p.id,
+          qt_estoque
+        );
+
+        if (response?.registro?.status != "OK") status = 500;
+      }
+
+      e.updated_at = updated_at = new Date();
+      if (status == 200) {
+        e.status = 10;
+        await estoqueRepository.update(e.codigo, e);
+      }
+
+      if (status == 500) {
+        await filaRepository.insertMany([e]);
+        e.status = 500;
+        await estoqueRepository.update(e.codigo, e);
       }
     }
-
-    let p = produto?.codigo;
-    let t = produto?.tipoVariacao;
-    console.log(`Estoque:${qt_estoque} EstoqueTiny:${saldo_tiny} ${t} P=${p}`);
-
-    if (qt_estoque != saldo_tiny && produto.tipoVariacao != "P") {
-      console.log(" E S T O Q U  E     A J U S T A D O  ! !  ");
-      response = await estoqueController.produtoAtualizarEstoque(
-        tenant.token,
-        produto.id,
-        qt_estoque
-      );
-
-      if (response?.registro?.status != "OK") status = 500;
-    }
-    console.log(separador);
-
-    produto.sys_status = status;
-    if (produto.sys_status == 500) {
-      console.log(separador);
-      console.log("Produto nao atualizado no Tiny " + produto.id);
-      console.log(separador);
-      //gravar em outra tabela de produto nao atualizado
-    }
-
-    await prodTinyRepository.update(produto.id, produto);
-  } //for produtos
+  }
 }
 
 async function excluirProdutoTinyByTenant(tenant) {
@@ -396,7 +352,6 @@ async function excluirProdutoTinyByTenant(tenant) {
 
 const AnuncioController = {
   init,
-  importarProdutoTinyDiario,
 };
 
 export { AnuncioController };

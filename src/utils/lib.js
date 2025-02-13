@@ -304,6 +304,14 @@ function extrairAntesDoHifen(texto) {
   return texto;
 }
 
+function toCodigoABS(texto) {
+  let codigo = extrairAntesDoHifen(String(texto));
+  codigo = String(Number(lib.onlyNumber(codigo)));
+
+  //formula para extrair o codigo do tiny erp
+  return codigo;
+}
+
 export const lib = {
   config_id_integracao,
   config_modulo_server,
@@ -338,4 +346,5 @@ export const lib = {
   formatDate,
   toJson,
   extrairAntesDoHifen,
+  toCodigoABS,
 };
