@@ -178,14 +178,16 @@ async function atualizarEstoque() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   for (let tenant of tenants) {
     console.log(
-      "Inicio do processamento do estoque Servidor Tiny do tenant " +
+      `Inicio do processamento do estoque [${lib.currentDateTimeStr()}] ${
         tenant.id_tenant
+      } `
     );
 
     await processarEstoqueByTenant(tenant);
     console.log(
-      "Fim do processamento do estoque Servidor Tiny do tenant " +
+      `Fim do processamento do estoque [${lib.currentDateTimeStr()}]  ${
         tenant.id_tenant
+      } `
     );
   }
 }
@@ -284,8 +286,9 @@ async function produtoPesquisaByDataCriacao(tenant, dataCriacao) {
 }
 
 async function processarEstoqueByTenant(tenant) {
+  //limitar tempo de processamento
   const startTime = Date.now();
-  const maxDuration = 4 * 60 * 1000; // 4 minutes in milliseconds
+  const maxDuration = 50 * 60 * 1000; // 50 minutes in milliseconds
 
   //abrir uma conexao com mongodb
   const c = await TMongo.connect();
@@ -308,11 +311,11 @@ async function processarEstoqueByTenant(tenant) {
 
   //estou varrendo o estoque
   for (let e of estoques) {
-    //tinha muitos produtos para atualizar e estava demorando demais
-    // if (Date.now() - startTime > maxDuration) {
-    //   console.log("Tempo excedido. Saindo do loop principal.");
-    //   break;
-    // }
+    //limitar tempo de processamento
+    if (Date.now() - startTime > maxDuration) {
+      console.log("Tempo excedido. Saindo do loop principal.");
+      break;
+    }
 
     let id_produto = e.id_produto;
     let qt_estoque = e.estoque ? e.estoque : 0;

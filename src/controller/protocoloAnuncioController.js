@@ -92,7 +92,7 @@ const retificarAnuncio = async (req, res) => {
     }
   }
 
-  console.log("A consulta retornou :", result);
+  //console.log("A consulta retornou :", result);
   TResponseService.send(req, res, result);
 };
 
