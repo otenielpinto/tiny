@@ -79,6 +79,10 @@ async function atualizarPrecoVenda() {
   let max_lote = 20;
   const c = await TMongo.connect();
 
+  //Limitar o tempo de processamento para 5 minutos
+  const startTime = Date.now();
+  const maxDuration = 5 * 60 * 1000; // 5 minutes in milliseconds
+
   //para cada tenant , atualizo os preços
   for (let tenant of tenants) {
     let anuncioRepository = new AnuncioRepository(c, tenant.id_tenant);
@@ -104,6 +108,11 @@ async function atualizarPrecoVenda() {
           preco: String(row.preco),
           preco_promocional: String(row.preco_promocional),
         });
+      }
+
+      if (Date.now() - startTime > maxDuration) {
+        console.log("Tempo excedido. Saindo do loop principal.");
+        break;
       }
 
       //Coleto o sku dos produtos  para forçar uma atualização
@@ -153,7 +162,7 @@ async function atualizarPrecoVenda() {
     if (precos.length > 0) {
       await estoqueController.atualizarPrecosLote(tenant, precos);
     }
-  }
+  } //for do tenant
 }
 
 async function processarLote(anuncioRepository, lotes) {
