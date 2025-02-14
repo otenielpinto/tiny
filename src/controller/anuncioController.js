@@ -308,6 +308,7 @@ async function processarEstoqueByTenant(tenant) {
 
   //estou varrendo o estoque
   for (let e of estoques) {
+    //tinha muitos produtos para atualizar e estava demorando demais
     // if (Date.now() - startTime > maxDuration) {
     //   console.log("Tempo excedido. Saindo do loop principal.");
     //   break;
