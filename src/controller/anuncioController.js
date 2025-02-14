@@ -21,6 +21,7 @@ async function init() {
     await atualizarEstoque();
     return;
   }
+
   //carga geral todos os dias 1 x ao dia
   await importarProdutoTiny();
 
@@ -81,7 +82,7 @@ async function atualizarPrecoVenda() {
 
   //Limitar o tempo de processamento para 5 minutos
   const startTime = Date.now();
-  const maxDuration = 5 * 60 * 1000; // 5 minutes in milliseconds
+  const maxDuration = 4 * 60 * 1000; // 4 minutes in milliseconds
 
   //para cada tenant , atualizo os preços
   for (let tenant of tenants) {
@@ -307,10 +308,10 @@ async function processarEstoqueByTenant(tenant) {
 
   //estou varrendo o estoque
   for (let e of estoques) {
-    if (Date.now() - startTime > maxDuration) {
-      console.log("Tempo excedido. Saindo do loop principal.");
-      break;
-    }
+    // if (Date.now() - startTime > maxDuration) {
+    //   console.log("Tempo excedido. Saindo do loop principal.");
+    //   break;
+    // }
 
     let id_produto = e.id_produto;
     let qt_estoque = e.estoque ? e.estoque : 0;
