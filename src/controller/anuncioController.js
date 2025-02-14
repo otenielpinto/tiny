@@ -288,7 +288,7 @@ async function processarEstoqueByTenant(tenant) {
         if (response?.registro?.status != "OK") status = 500;
       }
 
-      e.updated_at = updated_at = new Date();
+      e.updated_at = new Date();
       if (status == 200) {
         e.status = 1; // 0- processar  1 - processado   10-concluido
         await estoqueRepository.update(e.codigo, e);
