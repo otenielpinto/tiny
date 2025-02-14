@@ -33,11 +33,11 @@ async function init() {
   //zerar estoque geral  (provisorio 26-09-2024 )
   // await zerarEstoqueGeralTiny();
 
+  //atualizar estoque ecommerce ( prioridade é o estoque )
+  await atualizarEstoque();
+
   //atualizar precos em lote
   await atualizarPrecoVenda();
-
-  //atualizar estoque ecommerce
-  await atualizarEstoque();
 }
 
 async function zerarEstoqueGeralTiny() {
