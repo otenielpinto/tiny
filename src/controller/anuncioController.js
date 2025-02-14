@@ -10,6 +10,7 @@ import { systemService } from "../services/systemService.js";
 import { mpkIntegracaoController } from "./mpkIntegracaoController.js";
 import { FilaEstoqueRepository } from "../repository/filaEstoqueRepository.js";
 
+//Essa variavel global é perigosa , mas vou manter a estrategia . Sei que nao devo usar !
 var filterTiny = {
   id_mktplace: marketplaceTypes.tiny,
 };
@@ -33,7 +34,7 @@ async function init() {
   // await zerarEstoqueGeralTiny();
 
   //atualizar precos em lote
-  await atualizarPrecoVendaTiny();
+  await atualizarPrecoVenda();
 
   //atualizar estoque ecommerce
   await atualizarEstoque();
@@ -72,10 +73,13 @@ async function importarProdutoTinyDiario() {
   }
 }
 
-async function atualizarPrecoVendaTiny() {
+async function atualizarPrecoVenda() {
+  //obtenho os tenants
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   let max_lote = 20;
   const c = await TMongo.connect();
+
+  //para cada tenant , atualizo os preços
   for (let tenant of tenants) {
     let anuncioRepository = new AnuncioRepository(c, tenant.id_tenant);
     let where = {
@@ -84,10 +88,14 @@ async function atualizarPrecoVendaTiny() {
       status: 0,
     };
 
+    //obtenho todos os anuncios para atualizar
     let precos = [];
     let lotes = [];
+    let lista = [];
     let rows = await anuncioRepository.findAll(where);
 
+    //aqui faço a atualizacao de preços pelo codigo do anuncio ---> Mas ele pode esta errado devido ao agrupamento de produtos
+    //portanto preciso identificar o produto e atualizar também pelo campo id_produto .
     for (let row of rows) {
       if (row?.id_anuncio_mktplace) {
         lotes.push(row);
@@ -98,16 +106,52 @@ async function atualizarPrecoVendaTiny() {
         });
       }
 
+      //Coleto o sku dos produtos  para forçar uma atualização
+      lista.push({
+        sku: row.sku,
+        preco: String(row.preco),
+        preco_promocional: String(row.preco_promocional),
+      });
+
       if (precos.length == max_lote) {
         await estoqueController.atualizarPrecosLote(tenant, precos);
         lotes = await processarLote(anuncioRepository, lotes);
         precos = [];
       }
     }
-
+    //ultima linha de processamento
     if (precos.length > 0) {
       await estoqueController.atualizarPrecosLote(tenant, precos);
       lotes = await processarLote(anuncioRepository, lotes);
+    }
+    //------------------------------------------------------------------------------
+    //aqui faça atualizacao pela lista de sku ( busco o id do anuncio  x sku )
+    const prodTinyRepository = new ProdutoTinyRepository(c, tenant.id_tenant);
+    precos = [];
+    for (let l of lista) {
+      let items = await prodTinyRepository.findAll({
+        sys_codigo: l.sku,
+        id_tenant: tenant.id_tenant,
+      });
+      if (!items) continue;
+
+      for (let i of items) {
+        precos.push({
+          id: String(i.id),
+          preco: String(i.preco),
+          preco_promocional: String(i.preco_promocional),
+        });
+
+        if (precos.length == max_lote) {
+          await estoqueController.atualizarPrecosLote(tenant, precos);
+          precos = [];
+        }
+      }
+    }
+
+    //ultima linha de processamento
+    if (precos.length > 0) {
+      await estoqueController.atualizarPrecosLote(tenant, precos);
     }
   }
 }
