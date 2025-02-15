@@ -310,6 +310,7 @@ async function processarEstoqueByTenant(tenant) {
   const estoques = await estoqueRepository.findAll({
     status: 0,
     id_tenant: id_tenant,
+    id_integracao: tenant.id,
   });
 
   //estou varrendo o estoque
