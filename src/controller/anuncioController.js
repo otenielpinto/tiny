@@ -63,6 +63,9 @@ async function importarProdutoTinyDiario() {
 
   for (let tenant of tenants) {
     let response = await produtoPesquisaByDataCriacao(tenant, hoje);
+    console.log(
+      "Importando produtos novos tiny de hoje " + lib.currentDateTimeStr()
+    );
     if (!Array.isArray(response)) continue;
     let produtoTinyRepository = new ProdutoTinyRepository(c, tenant.id_tenant);
 
@@ -326,6 +329,13 @@ async function processarEstoqueByTenant(tenant) {
       sys_codigo: String(id_produto),
       id_tenant: id_tenant,
     });
+
+    //Nao achou no catalogo do Tiny ,  pode ser que tenha sido excluido diretamente pelo Tiny ERP , porem tem a relação no sistema .
+    if (Array.isArray(produtos) || produtos.length == 0) {
+      e.status = 1; // 0- processar  1 - processado   10-concluido
+      await estoqueRepository.update(e.codigo, e);
+      continue;
+    }
 
     //otenho a lista de produtos cadastrado  conforme mapeamento
     let response = null;

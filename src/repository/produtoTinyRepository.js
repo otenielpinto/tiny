@@ -12,8 +12,7 @@ class ProdutoTinyRepository {
   async create(payload) {
     if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
     if (!payload.sys_created_at) payload.sys_created_at = new Date();
-    payload.sys_saldo = 0;
-    payload.sys_estoque = 0;
+
     const result = await this.db.collection(collection).insertOne(payload);
     return result.insertedId;
   }
@@ -21,12 +20,9 @@ class ProdutoTinyRepository {
   async update(id, payload) {
     if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
     payload.updated_at = new Date();
-
     let codigo = lib.toCodigoABS(payload?.codigo);
-
     payload.sys_codigo = codigo;
     if (!payload.sys_status) payload.sys_status = 200; //sempre que for atualizar o produto no tiny, o sys_status deve ser 200
-    if (!payload.sys_estoque) payload.sys_estoque = 0;
 
     const result = await this.db
       .collection(collection)
