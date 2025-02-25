@@ -19,7 +19,6 @@ class AnuncioRepository {
     if (!payload.id_tenant) payload.id_tenant = this.id_tenant;
     if (!payload.updated_at) payload.updated_at = new Date();
 
-
     const result = await this.db
       .collection(collection)
       .updateOne(
@@ -27,7 +26,7 @@ class AnuncioRepository {
         { $set: payload },
         { upsert: true }
       );
-    return result.modifiedCount > 0;
+    return result;
   }
 
   async delete(id) {

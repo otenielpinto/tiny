@@ -8,6 +8,7 @@ import { estoqueController } from "./estoqueController.js";
 import { marketplaceTypes } from "../types/marketplaceTypes.js";
 import { systemService } from "../services/systemService.js";
 import { mpkIntegracaoController } from "./mpkIntegracaoController.js";
+import { FilaEstoqueRepository } from "../repository/filaEstoqueRepository.js";
 
 //Essa variavel global é perigosa , mas vou manter a estrategia . Sei que nao devo usar !
 var filterTiny = {
@@ -33,11 +34,19 @@ async function init() {
   //(desativado)zerar estoque geral  (provisorio 26-09-2024 )
   //(desativado) await zerarEstoqueGeralTiny();
 
-  //atualizar estoque ecommerce ( prioridade é o estoque )
-  await atualizarEstoque();
+  try {
+    await processar_fila_entrada();
+  } catch (error) {}
+
+  //Todo : Nao precisar disso aqui , atualizar pela fila de entrada  atualizar estoque ecommerce ( prioridade é o estoque )
+  try {
+    await atualizarEstoque();
+  } catch (error) {}
 
   //atualizar precos em lote
-  await atualizarPrecoVenda();
+  try {
+    await atualizarPrecoVenda();
+  } catch (error) {}
 }
 
 async function zerarEstoqueGeralTiny() {
@@ -52,6 +61,40 @@ async function zerarEstoqueGeralTiny() {
       "Fim do processamento do estoque Servidor Tiny do tenant " +
         tenant.id_tenant
     );
+  }
+}
+
+async function processar_fila_entrada() {
+  let tenants = await mpkIntegracaoController.findAll(filterTiny);
+
+  for (let tenant of tenants) {
+    let c = await TMongo.connect();
+    let fila = new FilaEstoqueRepository(c);
+    let anuncio = new AnuncioRepository(c, tenant.id_tenant);
+
+    let rows = await fila.findAll({
+      id_tenant: tenant.id_tenant,
+      id_integracao: tenant.id,
+    });
+
+    console.log("Total de registros na fila de entrada: ", rows.length);
+    let updates = 0;
+    for (let row of rows) {
+      //nao é permitido atualizar esse campo no mongodb db . ok
+      if (row._id) delete row._id;
+      let retorno = await anuncio.update(row.id, row);
+
+      if (retorno.modifiedCount > 0) {
+        await fila.delete(row.id);
+        updates++;
+      }
+    }
+
+    if (updates > 0) {
+      console.log(`${updates} registros foram atualizados.`);
+    } else {
+      console.log("Nenhum registro foi atualizado.");
+    }
   }
 }
 
@@ -353,6 +396,8 @@ async function processarEstoqueByTenant(tenant) {
     if (!Array.isArray(produtos) || produtos.length == 0) {
       console.log("Produto não encontrado no Tiny ", id_produto);
       //armazenar em outra arquivo para disparar uma mensagem  para o administrador
+      e.status = 500; // 0- processar  1 - processado   10-concluido  500-erro
+      await estoqueRepository.update(e.codigo, e);
       continue;
     }
 
