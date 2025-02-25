@@ -24,6 +24,10 @@ async function init() {
     return;
   }
 
+  // await task();
+  // console.log("O processamento encerrado !" + lib.currentDateTimeStr());
+  // return;
+
   try {
     let time = process.env.CRON_JOB_TIME || 10; //tempo em minutos
     const job = nodeSchedule.scheduleJob(`*/${time} * * * *`, async () => {

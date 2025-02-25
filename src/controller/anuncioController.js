@@ -8,7 +8,6 @@ import { estoqueController } from "./estoqueController.js";
 import { marketplaceTypes } from "../types/marketplaceTypes.js";
 import { systemService } from "../services/systemService.js";
 import { mpkIntegracaoController } from "./mpkIntegracaoController.js";
-import { FilaEstoqueRepository } from "../repository/filaEstoqueRepository.js";
 
 //Essa variavel global é perigosa , mas vou manter a estrategia . Sei que nao devo usar !
 var filterTiny = {
@@ -31,8 +30,8 @@ async function init() {
   //atualizar novos produtos cadastrados no tiny  5 minutos
   await importarProdutoTinyDiario();
 
-  //zerar estoque geral  (provisorio 26-09-2024 )
-  // await zerarEstoqueGeralTiny();
+  //(desativado)zerar estoque geral  (provisorio 26-09-2024 )
+  //(desativado) await zerarEstoqueGeralTiny();
 
   //atualizar estoque ecommerce ( prioridade é o estoque )
   await atualizarEstoque();
@@ -62,19 +61,28 @@ async function importarProdutoTinyDiario() {
   const c = await TMongo.connect();
 
   for (let tenant of tenants) {
-    let response = await produtoPesquisaByDataCriacao(tenant, hoje);
-    console.log(
-      "Importando produtos novos tiny de hoje " + lib.currentDateTimeStr()
-    );
-    if (!Array.isArray(response)) continue;
-    let produtoTinyRepository = new ProdutoTinyRepository(c, tenant.id_tenant);
+    for (let page = 1; page < 10; page++) {
+      let response = await produtoPesquisaByDataCriacao(tenant, hoje);
+      console.log(
+        `Importando produtos novos tiny de hoje [Pagina ${page} ]` +
+          lib.currentDateTimeStr()
+      );
+      if (!response || !Array.isArray(response)) {
+        if (page > 2) break;
+        continue;
+      }
 
-    for (let item of response) {
-      let obj = item?.produto ? item?.produto : {};
-      if (!obj?.id) continue;
-      await produtoTinyRepository.update(obj?.id, obj);
-    }
-  }
+      let produtoTinyRepository = new ProdutoTinyRepository(
+        c,
+        tenant.id_tenant
+      );
+      for (let item of response) {
+        let obj = item?.produto ? item?.produto : {};
+        if (!obj?.id) continue;
+        await produtoTinyRepository.update(obj?.id, obj);
+      } //response
+    } //paginacao
+  } // tenant id
 }
 
 async function atualizarPrecoVenda() {
@@ -179,6 +187,7 @@ async function processarLote(anuncioRepository, lotes) {
 
 async function atualizarEstoque() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
+
   for (let tenant of tenants) {
     console.log(
       `Inicio do processamento do estoque [${lib.currentDateTimeStr()}] ${
@@ -272,8 +281,11 @@ async function obterProdutoEstoque(tiny, id) {
   return response;
 }
 
-async function produtoPesquisaByDataCriacao(tenant, dataCriacao) {
-  const data = [{ key: "dataCriacao", value: dataCriacao }];
+async function produtoPesquisaByDataCriacao(tenant, dataCriacao, page = 1) {
+  const data = [
+    { key: "dataCriacao", value: dataCriacao },
+    { key: "pagina", value: page ? page : 1 },
+  ];
   let response = null;
 
   const tiny = new Tiny({ token: tenant.token });
@@ -281,6 +293,13 @@ async function produtoPesquisaByDataCriacao(tenant, dataCriacao) {
 
   for (let t = 1; t < 5; t++) {
     response = await tiny.post("produtos.pesquisa.php", data);
+
+    if (response?.data?.retorno?.codigo_erro == 20) {
+      console.log("A consulta não retornou registros");
+      response = null;
+      break;
+    }
+
     response = await tiny.tratarRetorno(response, "produtos");
     if (tiny.status() == "OK") break;
     response = null;
@@ -300,7 +319,6 @@ async function processarEstoqueByTenant(tenant) {
   //database
   const prodTinyRepository = new ProdutoTinyRepository(c, id_tenant);
   const estoqueRepository = new EstoqueRepository(c, id_tenant);
-  const filaRepository = new FilaEstoqueRepository(c);
 
   //interface comunicacao com api
   const tiny = new Tiny({ token: tenant.token });
@@ -333,8 +351,7 @@ async function processarEstoqueByTenant(tenant) {
 
     //Nao achou no catalogo do Tiny ,  pode ser que tenha sido excluido diretamente pelo Tiny ERP , porem tem a relação no sistema .
     if (Array.isArray(produtos) || produtos.length == 0) {
-      e.status = 1; // 0- processar  1 - processado   10-concluido
-      await estoqueRepository.update(e.codigo, e);
+      console.log("Produto não encontrado no Tiny ", id_produto);
       continue;
     }
 
@@ -360,12 +377,6 @@ async function processarEstoqueByTenant(tenant) {
       e.updated_at = new Date();
       if (status == 200) {
         e.status = 1; // 0- processar  1 - processado   10-concluido
-        await estoqueRepository.update(e.codigo, e);
-      }
-
-      if (status == 500) {
-        await filaRepository.insertMany([e]);
-        e.status = 500;
         await estoqueRepository.update(e.codigo, e);
       }
     }
