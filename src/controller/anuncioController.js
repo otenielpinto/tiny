@@ -350,8 +350,9 @@ async function processarEstoqueByTenant(tenant) {
     });
 
     //Nao achou no catalogo do Tiny ,  pode ser que tenha sido excluido diretamente pelo Tiny ERP , porem tem a relação no sistema .
-    if (Array.isArray(produtos) || produtos.length == 0) {
+    if (!Array.isArray(produtos) || produtos.length == 0) {
       console.log("Produto não encontrado no Tiny ", id_produto);
+      //armazenar em outra arquivo para disparar uma mensagem  para o administrador
       continue;
     }
 
