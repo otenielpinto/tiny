@@ -134,9 +134,9 @@ async function atualizarPrecoVenda() {
   let max_lote = 20;
   const c = await TMongo.connect();
 
-  //Limitar o tempo de processamento para 5 minutos
+  //Limitar o tempo de processamento
   const startTime = Date.now();
-  const maxDuration = 4 * 60 * 1000; // 4 minutes in milliseconds
+  const maxDuration = 30 * 60 * 1000; // 30 minutes in milliseconds
 
   //para cada tenant , atualizo os preços
   for (let tenant of tenants) {
@@ -223,8 +223,7 @@ async function atualizarPrecoVenda() {
 
 async function processarLote(anuncioRepository, lotes) {
   for (let row of lotes) {
-    row.status = 1;
-    await anuncioRepository.update(row.id, row);
+    await anuncioRepository.update(row.id, { status: 1 });
   }
   return [];
 }
@@ -421,7 +420,6 @@ async function processarEstoqueByTenant(tenant) {
         if (response?.registro?.status != "OK") status = 500;
       }
 
-      e.updated_at = new Date();
       if (status == 200) {
         e.status = 1; // 0- processar  1 - processado   10-concluido
         await estoqueRepository.update(e.codigo, e);
