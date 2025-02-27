@@ -22,7 +22,7 @@ class EstoqueRepository {
         { $set: payload },
         { upsert: true }
       );
-    return result.modifiedCount > 0;
+    return result;
   }
 
   async delete(id) {
@@ -37,7 +37,9 @@ class EstoqueRepository {
   }
 
   async findById(id) {
-    return await this.db.collection(collection).findOne({ id: Number(id), id_tenant: this.id_tenant });
+    return await this.db
+      .collection(collection)
+      .findOne({ id: Number(id), id_tenant: this.id_tenant });
   }
 
   async findByIdProduto(id_produto) {

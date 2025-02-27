@@ -66,11 +66,11 @@ async function zerarEstoqueGeralTiny() {
 
 async function processarFilaEstoque() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
+  let c = await TMongo.connect();
 
   for (let tenant of tenants) {
-    let c = await TMongo.connect();
     let fila = new FilaEstoqueRepository(c);
-    let anuncio = new AnuncioRepository(c, tenant.id_tenant);
+    const estoque = new EstoqueRepository(c, tenant.id_tenant);
 
     let rows = await fila.findAll({
       id_tenant: tenant.id_tenant,
@@ -82,10 +82,10 @@ async function processarFilaEstoque() {
     for (let row of rows) {
       //nao é permitido atualizar esse campo no mongodb db . ok
       if (row._id) delete row._id;
-      let retorno = await anuncio.update(row.id, row);
+      let retorno = await estoque.update(row.codigo, row);
 
       if (retorno.modifiedCount > 0) {
-        await fila.delete(row.id);
+        await fila.delete(row.codigo);
         updates++;
       }
     }

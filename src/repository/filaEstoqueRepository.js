@@ -16,14 +16,14 @@ class FilaEstoqueRepository {
     const result = await this.db
       .collection(collection)
       .updateOne({ id: Number(id) }, { $set: payload }, { upsert: true });
-    return result.modifiedCount > 0;
+    return result;
   }
 
-  async delete(id) {
+  async delete(codigo) {
     const result = await this.db
       .collection(collection)
-      .deleteOne({ id: Number(id) });
-    return result.deletedCount > 0;
+      .deleteOne({ codigo: String(codigo) });
+    return result;
   }
 
   async findAll(criterio = {}) {
