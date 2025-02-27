@@ -35,7 +35,7 @@ async function init() {
   //(desativado) await zerarEstoqueGeralTiny();
 
   try {
-    await processar_fila_entrada();
+    await processarFilaEstoque();
   } catch (error) {}
 
   //Todo : Nao precisar disso aqui , atualizar pela fila de entrada  atualizar estoque ecommerce ( prioridade é o estoque )
@@ -64,7 +64,7 @@ async function zerarEstoqueGeralTiny() {
   }
 }
 
-async function processar_fila_entrada() {
+async function processarFilaEstoque() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
 
   for (let tenant of tenants) {
@@ -143,7 +143,7 @@ async function atualizarPrecoVenda() {
     let anuncioRepository = new AnuncioRepository(c, tenant.id_tenant);
     let where = {
       id_tenant: tenant.id_tenant,
-      id_marketplace: tenant.id_mktplace,
+      id_integracao: tenant.id,
       status: 0,
     };
 
@@ -152,6 +152,7 @@ async function atualizarPrecoVenda() {
     let lotes = [];
     let lista = [];
     let rows = await anuncioRepository.findAll(where);
+    console.log("Total de registros a serem processados: ", rows.length);
 
     //aqui faço a atualizacao de preços pelo codigo do anuncio ---> Mas ele pode esta errado devido ao agrupamento de produtos
     //portanto preciso identificar o produto e atualizar também pelo campo id_produto .
