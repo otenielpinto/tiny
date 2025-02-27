@@ -396,8 +396,7 @@ async function processarEstoqueByTenant(tenant) {
     if (!Array.isArray(produtos) || produtos.length == 0) {
       console.log("Produto não encontrado no Tiny ", id_produto);
       //armazenar em outra arquivo para disparar uma mensagem  para o administrador
-      e.status = 500; // 0- processar  1 - processado   10-concluido  500-erro
-      await estoqueRepository.update(e.codigo, e);
+      await estoqueRepository.update(e.codigo, { status: 500 });
       continue;
     }
 
@@ -421,8 +420,8 @@ async function processarEstoqueByTenant(tenant) {
       }
 
       if (status == 200) {
-        e.status = 1; // 0- processar  1 - processado   10-concluido
-        await estoqueRepository.update(e.codigo, e);
+        // 0- processar  1 - processado   10-concluido
+        await estoqueRepository.update(e.codigo, { status: 1 });
       }
     }
   }
