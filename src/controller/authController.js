@@ -1,5 +1,4 @@
 import { AuthRepository } from "../repository/authRepository.js";
-import { TMongo } from "../infra/mongoClient.js";
 import { z } from "zod";
 
 const authSchema = z.object({
@@ -20,10 +19,10 @@ function invalidCredentials(req, res) {
 
 const validateCredentials = async (req, res, next) => {
   const { client_id, client_secret } = req.headers;
-  if (!client_id || !client_secret) return invalidCredentials(req, res);
+  console.log("Validando credenciais ", client_id, client_secret);
 
   //verificar credenciais
-  const auth = new AuthRepository(await TMongo.connect());
+  const auth = new AuthRepository();
   const response = await auth.validateCredentials(client_id, client_secret);
 
   if (!response) {
@@ -42,7 +41,7 @@ const create = async (req, res) => {
     });
   }
 
-  const auth = new AuthRepository(await TMongo.connect());
+  const auth = new AuthRepository();
   const result = await auth.create(body);
   if (!result) {
     return res.status(400).send({

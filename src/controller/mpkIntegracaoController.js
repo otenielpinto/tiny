@@ -1,5 +1,4 @@
 import { MpkIntegracaoRepository } from "../repository/mpkIntegracaoRepository.js";
-import { TMongo } from "../infra/mongoClient.js";
 import { z } from "zod";
 
 const mpkIntegracaoSchema = z.object({
@@ -15,7 +14,8 @@ const mpkIntegracaoSchema = z.object({
 
 const getToken = async (body) => {
   let { id_integracao, id_tenant } = body;
-  let filter = { id: id_integracao, id_tenant };
+  let filter = { id: Number(id_integracao), id_tenant: Number(id_tenant) };
+
   let tenant = await findOne(filter);
   if (!tenant) {
     throw new Error("Integração não encontrada");
@@ -34,16 +34,14 @@ const getIdStorage = async (body) => {
   return tenant.id_storage;
 };
 
-
-
 const findOne = async (filter = {}) => {
-  const repository = new MpkIntegracaoRepository(await TMongo.connect());
+  const repository = new MpkIntegracaoRepository();
   const result = await repository.findOne(filter);
   return result;
 };
 
 const findAll = async (filter = {}) => {
-  const repository = new MpkIntegracaoRepository(await TMongo.connect());
+  const repository = new MpkIntegracaoRepository();
   const result = await repository.findAll(filter);
   return result;
 };
@@ -57,7 +55,7 @@ const create = async (req, res) => {
     });
   }
 
-  const repository = new MpkIntegracaoRepository(await TMongo.connect());
+  const repository = new MpkIntegracaoRepository();
   const result = await repository.create(body);
   res.send(result);
 };
@@ -66,7 +64,7 @@ const mpkIntegracaoController = {
   create,
   findAll,
   findOne,
-  getToken
+  getToken,
 };
 
 export { mpkIntegracaoController, getToken, getIdStorage };
