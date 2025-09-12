@@ -10,6 +10,7 @@ import { anuncioRoutes } from "./routes/anuncioRoutes.js";
 import { authController } from "./controller/authController.js";
 import { authRoutes } from "./routes/authRoutes.js";
 import { mpkIntegracaoRoutes } from "./routes/mpkIntegracaoRoutes.js";
+import { estoqueRoutes } from "./routes/estoqueRoute.js";
 
 dotenv.config();
 process.env.TZ = "America/Sao_Paulo";
@@ -46,6 +47,7 @@ app.get("/health", (req, res) => {
 app.use("/authorization/", authRoutes);
 app.use("/ecommerce/", mpkIntegracaoRoutes);
 app.use("/anuncio/", authController.validateCredentials, anuncioRoutes);
+app.use("/estoque/", authController.validateCredentials, estoqueRoutes);
 
 //app.use("/categoria/", categoriaRoutes);
 

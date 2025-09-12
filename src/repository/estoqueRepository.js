@@ -15,20 +15,35 @@ class EstoqueRepository {
 
   async update(codigo, payload) {
     payload.updated_at = new Date();
+    let inc = {};
+    if (payload?.status === 500) {
+      inc = { $inc: { error_count: 1 } };
+    } else {
+      payload.error_count = 0;
+    }
     const result = await this.db
       .collection(collection)
       .updateOne(
         { codigo: String(codigo) },
-        { $set: payload },
+        { $set: payload, ...inc },
         { upsert: true }
       );
     return result;
   }
 
-  async delete(id) {
+  // processar novamente os itens com status 500
+  async reprocessar(filter, payload) {
+    payload.updated_at = new Date();
     const result = await this.db
       .collection(collection)
-      .deleteOne({ id: Number(id) });
+      .updateMany(filter, { $set: payload });
+    return result;
+  }
+
+  async delete(codigo) {
+    const result = await this.db
+      .collection(collection)
+      .deleteOne({ codigo: String(codigo) });
     return result.deletedCount > 0;
   }
 

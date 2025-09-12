@@ -31,6 +31,11 @@ async function init() {
   //atualizar novos produtos cadastrados no tiny  5 minutos
   await importarProdutoTinyDiario();
 
+  //reprocessar estoque 1 x ao dia  , Excluir registros com mais de 10 tentativas
+  try {
+    await reprocessarEstoque();
+  } catch (error) {}
+
   //(desativado)zerar estoque geral  (provisorio 26-09-2024 )
   //(desativado) await zerarEstoqueGeralTiny();
 
@@ -64,6 +69,22 @@ async function zerarEstoqueGeralTiny() {
   }
 }
 
+async function reprocessarEstoque() {
+  let tenants = await mpkIntegracaoController.findAll(filterTiny);
+  let key = "reprocessar_estoque";
+  let c = null;
+  for (let tenant of tenants) {
+    if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
+    if (!c) c = await TMongo.connect();
+    let estoque = new EstoqueRepository(c, tenant.id_tenant);
+
+    await estoque.reprocessar(
+      { status: 500, id_tenant: tenant.id_tenant },
+      { status: 0 }
+    );
+  }
+}
+
 async function processarFilaEstoque() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
   let c = await TMongo.connect();
@@ -87,6 +108,13 @@ async function processarFilaEstoque() {
       if (retorno.modifiedCount > 0) {
         await fila.delete(row.codigo);
         updates++;
+      }
+
+      if (!row?.id_anuncio_mktplace && !row?.id_variant_mktplace) {
+        await fila.delete(row.codigo);
+        console.log(
+          "Excluindo registro da fila sem id do marketplace " + row.codigo
+        );
       }
     }
 
@@ -384,6 +412,7 @@ async function processarEstoqueByTenant(tenant) {
 
     let id_produto = e.id_produto;
     let qt_estoque = e.estoque ? e.estoque : 0;
+    let error_count = e.error_count ? e.error_count : 0;
 
     //aqui vou pesquisar na lista de produtos importados do tiny o id do tiny
     //nao posso usar o id que vem na tabela de estoques porques o tiny muda o id no agrupamento de anuncio ....
@@ -396,7 +425,12 @@ async function processarEstoqueByTenant(tenant) {
     if (!Array.isArray(produtos) || produtos.length == 0) {
       console.log("Produto não encontrado no Tiny ", id_produto);
       //armazenar em outra arquivo para disparar uma mensagem  para o administrador
-      await estoqueRepository.update(e.codigo, { status: 500 });
+      if (error_count > 10) {
+        await estoqueRepository.delete(e.codigo);
+      } else {
+        await estoqueRepository.update(e.codigo, { status: 500 });
+      }
+
       continue;
     }
 
