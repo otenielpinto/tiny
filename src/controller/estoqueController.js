@@ -40,7 +40,7 @@ async function produtoAtualizarEstoque(token, id_produto, quantity) {
 
   for (let t = 1; t < 5; t++) {
     console.log(
-      "Atualizando estoque " + t + "/5  " + id_produto + " qtd: " + quantity
+      "Atualizando estoque " + t + "/5  " + id_produto + " qtd: " + quantity,
     );
     response = await tiny.post("produto.atualizar.estoque.php", data);
     response = await tiny.tratarRetorno(response, "registros");
@@ -65,9 +65,11 @@ async function atualizarPrecosLote(tenant, produtos) {
     console.log("Atualizando precos em lote " + t + "/5  ");
     response = await tiny.post("produto.atualizar.precos.php", data);
     response = await tiny.tratarRetorno(response, "registros");
+
     if (tiny.status() == "OK") return response;
     response = null;
   }
+
   return response;
 }
 
@@ -142,12 +144,12 @@ const update = async (req, res) => {
     if (!Array.isArray(produtos) || produtos.length == 0) {
       produtos = [];
       console.log(
-        "Produto não encontrado no tenant " + id_tenant + " id_produto: " + sku
+        "Produto não encontrado no tenant " + id_tenant + " id_produto: " + sku,
       );
       r = await produtoAtualizarEstoque(
         token,
         row?.id_variant_mktplace,
-        estoque
+        estoque,
       );
       result.push(r);
     }
@@ -157,7 +159,7 @@ const update = async (req, res) => {
         r = await produtoAtualizarEstoque(token, p.id, estoque);
       } catch (error) {
         console.log(
-          `Erro ao atualizar estoque do produto ${sku} - ${error.message}`
+          `Erro ao atualizar estoque do produto ${sku} - ${error.message}`,
         );
         return res.status(500).send({
           message: `Erro ao atualizar estoque do produto ${sku} - ${error.message}`,
@@ -170,7 +172,7 @@ const update = async (req, res) => {
         r = await produtoAtualizarEstoque(
           token,
           p.id_variant_mktplace,
-          estoque
+          estoque,
         );
         result.push(r);
       }

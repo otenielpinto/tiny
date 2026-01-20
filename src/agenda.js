@@ -24,7 +24,7 @@ async function init() {
     return;
   }
 
-  // await task();
+  //await task();
   // console.log("O processamento encerrado " + lib.currentDateTimeStr());
   // return;
 
@@ -35,7 +35,7 @@ async function init() {
 
       if (global.processandoNow == 1) {
         console.log(
-          " Job can't started [processing] " + lib.currentDateTimeStr()
+          " Job can't started [processing] " + lib.currentDateTimeStr(),
         );
         return;
       }

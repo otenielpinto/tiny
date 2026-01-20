@@ -59,12 +59,12 @@ async function zerarEstoqueGeralTiny() {
   for (let tenant of tenants) {
     console.log(
       "Inicio do processamento do zerar estoque geral do tenant " +
-        tenant.id_tenant
+        tenant.id_tenant,
     );
     await estoqueController.zerarEstoqueGeral(tenant);
     console.log(
       "Fim do processamento do estoque Servidor Tiny do tenant " +
-        tenant.id_tenant
+        tenant.id_tenant,
     );
   }
 }
@@ -80,7 +80,7 @@ async function reprocessarEstoque() {
 
     await estoque.reprocessar(
       { status: 500, id_tenant: tenant.id_tenant },
-      { status: 0 }
+      { status: 0 },
     );
   }
 }
@@ -113,7 +113,7 @@ async function processarFilaEstoque() {
       if (!row?.id_anuncio_mktplace && !row?.id_variant_mktplace) {
         await fila.delete(row.codigo);
         console.log(
-          "Excluindo registro da fila sem id do marketplace " + row.codigo
+          "Excluindo registro da fila sem id do marketplace " + row.codigo,
         );
       }
     }
@@ -136,7 +136,7 @@ async function importarProdutoTinyDiario() {
       let response = await produtoPesquisaByDataCriacao(tenant, hoje);
       console.log(
         `Importando produtos novos tiny de hoje [Pagina ${page} ]` +
-          lib.currentDateTimeStr()
+          lib.currentDateTimeStr(),
       );
       if (!response || !Array.isArray(response)) {
         if (page > 2) break;
@@ -145,7 +145,7 @@ async function importarProdutoTinyDiario() {
 
       let produtoTinyRepository = new ProdutoTinyRepository(
         c,
-        tenant.id_tenant
+        tenant.id_tenant,
       );
       for (let item of response) {
         let obj = item?.produto ? item?.produto : {};
@@ -175,6 +175,8 @@ async function atualizarPrecoVenda() {
       status: 0,
     };
 
+    console.log(where);
+
     //obtenho todos os anuncios para atualizar
     let precos = [];
     let lotes = [];
@@ -192,6 +194,10 @@ async function atualizarPrecoVenda() {
           preco: String(row.preco),
           preco_promocional: String(row.preco_promocional),
         });
+      } else {
+        console.log("Anuncio sem id_anuncio_mktplace: ", row.id);
+        await anuncioRepository.update(row.id, { status: 500 });
+        continue;
       }
 
       if (Date.now() - startTime > maxDuration) {
@@ -212,6 +218,7 @@ async function atualizarPrecoVenda() {
         precos = [];
       }
     }
+
     //ultima linha de processamento
     if (precos.length > 0) {
       await estoqueController.atualizarPrecosLote(tenant, precos);
@@ -228,11 +235,11 @@ async function atualizarPrecoVenda() {
       });
       if (!items) continue;
 
-      for (let i of items) {
+      for (let item of items) {
         precos.push({
-          id: String(i.id),
-          preco: String(i.preco),
-          preco_promocional: String(i.preco_promocional),
+          id: String(item.id),
+          preco: String(l.preco),
+          preco_promocional: String(l.preco_promocional),
         });
 
         if (precos.length == max_lote) {
@@ -263,14 +270,14 @@ async function atualizarEstoque() {
     console.log(
       `Inicio do processamento do estoque [${lib.currentDateTimeStr()}] ${
         tenant.id_tenant
-      } `
+      } `,
     );
 
     await processarEstoqueByTenant(tenant);
     console.log(
       `Fim do processamento do estoque [${lib.currentDateTimeStr()}]  ${
         tenant.id_tenant
-      } `
+      } `,
     );
   }
 }
@@ -278,7 +285,7 @@ async function atualizarEstoque() {
 async function importarProdutoTinyByTenant(tenant) {
   let produtoTinyRepository = new ProdutoTinyRepository(
     await TMongo.connect(),
-    tenant.id_tenant
+    tenant.id_tenant,
   );
 
   const tiny = new Tiny({ token: tenant.token });
@@ -302,7 +309,7 @@ async function importarProdutoTinyByTenant(tenant) {
 
     for (let t = 1; t < 5; t++) {
       console.log(
-        "Tentativa: " + t + "  Paginas: " + page_count + " de " + page
+        "Tentativa: " + t + "  Paginas: " + page_count + " de " + page,
       );
       result = await tiny.post("produtos.pesquisa.php", data);
       response = await tiny.tratarRetorno(result, "produtos");
@@ -447,7 +454,7 @@ async function processarEstoqueByTenant(tenant) {
         response = await estoqueController.produtoAtualizarEstoque(
           tenant.token,
           p.id,
-          qt_estoque
+          qt_estoque,
         );
 
         if (response?.registro?.status != "OK") status = 500;
@@ -464,7 +471,7 @@ async function processarEstoqueByTenant(tenant) {
 async function excluirProdutoTinyByTenant(tenant) {
   let produtoTinyRepository = new ProdutoTinyRepository(
     await TMongo.connect(),
-    tenant.id_tenant
+    tenant.id_tenant,
   );
 
   const tiny = new Tiny({ token: tenant.token });
@@ -490,7 +497,7 @@ async function excluirProdutoTinyByTenant(tenant) {
 
     for (let t = 1; t < 5; t++) {
       console.log(
-        "Tentativa: " + t + "  Paginas: " + page + " de " + page_count
+        "Tentativa: " + t + "  Paginas: " + page + " de " + page_count,
       );
       result = await tiny.post("produtos.pesquisa.php", data);
       response = await tiny.tratarRetorno(result, "produtos");
@@ -505,6 +512,50 @@ async function excluirProdutoTinyByTenant(tenant) {
       console.log("Excluindo produto ", obj.id);
       await produtoTinyRepository.delete(obj.id);
     }
+  }
+}
+
+async function removerPromocao() {
+  let tenants = await mpkIntegracaoController.findAll(filterTiny);
+  for (let tenant of tenants) {
+    await removerPromocaoByTenant(tenant);
+  }
+}
+
+async function removerPromocaoByTenant(tenant) {
+  const c = await TMongo.connect();
+  const prodTinyRepository = new ProdutoTinyRepository(c, tenant.id_tenant);
+
+  let items = await prodTinyRepository.findAll({
+    preco_promocional: { $gt: 0 },
+    id_tenant: tenant.id_tenant,
+  });
+
+  console.log("Total de produtos com promocao para remover: ", items.length);
+
+  let precos = [];
+  let max_lote = 20;
+  let novo_promocao = 0;
+
+  for (let item of items) {
+    precos.push({
+      id: String(item.id),
+      preco: String(item.preco),
+      preco_promocional: String(novo_promocao),
+    });
+
+    if (precos.length == max_lote) {
+      await lib.sleep(1000 * 5); //evitar bloqueio por excesso de requisicoes
+      let res = await estoqueController.atualizarPrecosLote(tenant, precos);
+      console.log(res);
+      precos = [];
+    }
+  }
+
+  //ultima linha de processamento
+  if (precos.length > 0) {
+    let res = await estoqueController.atualizarPrecosLote(tenant, precos);
+    console.log(res);
   }
 }
 
