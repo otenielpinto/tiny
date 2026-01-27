@@ -22,6 +22,9 @@ async function init() {
     return;
   }
 
+  //Remove promocao se tiver em algum produto do tiny todos os dias 1 x ao dia
+  await removerPromocao();
+
   //carga geral todos os dias 1 x ao dia
   await importarProdutoTiny();
 
@@ -175,8 +178,6 @@ async function atualizarPrecoVenda() {
       status: 0,
     };
 
-    console.log(where);
-
     //obtenho todos os anuncios para atualizar
     let precos = [];
     let lotes = [];
@@ -192,7 +193,7 @@ async function atualizarPrecoVenda() {
         precos.push({
           id: String(row.id_anuncio_mktplace),
           preco: String(row.preco),
-          preco_promocional: String(row.preco_promocional),
+          preco_promocional: String("0"), //estou forçando zerar a promoção
         });
       } else {
         console.log("Anuncio sem id_anuncio_mktplace: ", row.id);
@@ -206,10 +207,12 @@ async function atualizarPrecoVenda() {
       }
 
       //Coleto o sku dos produtos  para forçar uma atualização
+      preco_promocional = 0;
+
       lista.push({
         sku: row.sku,
         preco: String(row.preco),
-        preco_promocional: String(row.preco_promocional),
+        preco_promocional: String(preco_promocional), //estou forçando zerar a promoção
       });
 
       if (precos.length == max_lote) {
@@ -235,11 +238,13 @@ async function atualizarPrecoVenda() {
       });
       if (!items) continue;
 
+      //l.preco_promocional
+
       for (let item of items) {
         precos.push({
           id: String(item.id),
           preco: String(l.preco),
-          preco_promocional: String(l.preco_promocional),
+          preco_promocional: String("0"), //estou forçando zerar a promoção
         });
 
         if (precos.length == max_lote) {
@@ -517,7 +522,9 @@ async function excluirProdutoTinyByTenant(tenant) {
 
 async function removerPromocao() {
   let tenants = await mpkIntegracaoController.findAll(filterTiny);
+  let key = "remover_promocao";
   for (let tenant of tenants) {
+    if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
     await removerPromocaoByTenant(tenant);
   }
 }

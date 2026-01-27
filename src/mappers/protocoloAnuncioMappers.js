@@ -32,6 +32,7 @@ async function toTiny(payload) {
   let id_storage = await getIdStorage(payload);
   //criar opcao para enviar ou nao a cor na descricao do produto
 
+  //payload.preco_promocional (forcei zerar a promocao na chamada do controller)
   let produto = {
     sequencia: "1",
     codigo: new_codigo,
@@ -39,7 +40,7 @@ async function toTiny(payload) {
     unidade: payload?.unidade,
     preco: payload.preco,
     ncm: payload?.ncm,
-    preco_promocional: payload.preco_promocional,
+    preco_promocional: "0",
     origem: "0",
     situacao: "A",
     tipo: "P",
@@ -68,7 +69,7 @@ async function toTiny(payload) {
     variacoes = await listOfVariations(
       payload.variacoes,
       payload.preco,
-      payload.preco_promocional
+      "0", // payload.preco_promocional
     );
     produto.variacoes = variacoes;
   }

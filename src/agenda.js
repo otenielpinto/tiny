@@ -25,7 +25,7 @@ async function init() {
   }
 
   //await task();
-  // console.log("O processamento encerrado " + lib.currentDateTimeStr());
+  //console.log("O processamento encerrado " + lib.currentDateTimeStr());
   // return;
 
   try {
