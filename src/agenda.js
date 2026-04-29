@@ -25,8 +25,9 @@ async function init() {
   }
 
   //await task();
+  //await AnuncioController.atualizarPrecoVenda();
   //console.log("O processamento encerrado " + lib.currentDateTimeStr());
-  // return;
+  //return;
 
   try {
     let time = process.env.CRON_JOB_TIME || 10; //tempo em minutos

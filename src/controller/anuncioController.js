@@ -207,7 +207,7 @@ async function atualizarPrecoVenda() {
       }
 
       //Coleto o sku dos produtos  para forçar uma atualização
-      preco_promocional = 0;
+      let preco_promocional = 0;
 
       lista.push({
         sku: row.sku,
@@ -568,6 +568,7 @@ async function removerPromocaoByTenant(tenant) {
 
 const AnuncioController = {
   init,
+  atualizarPrecoVenda,
 };
 
 export { AnuncioController };
