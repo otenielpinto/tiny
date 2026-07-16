@@ -28,7 +28,17 @@ async function listOfVariations(variations, preco, preco_promocional) {
 }
 
 async function toTiny(payload) {
-  let new_codigo = "X" + payload.sku;
+  let new_codigo =
+    payload?.variacao > 0 ? "X" + payload.sku : String(payload.sku);
+
+  let cest = "";
+  if (payload?.cest !== undefined && payload?.cest !== null) {
+    const normalizedCest = String(payload.cest).trim().replace(/\D/g, "");
+    if (normalizedCest.length === 7) {
+      cest = normalizedCest;
+    }
+  }
+
   let id_storage = await getIdStorage(payload);
   //criar opcao para enviar ou nao a cor na descricao do produto
 
@@ -44,7 +54,7 @@ async function toTiny(payload) {
     origem: "0",
     situacao: "A",
     tipo: "P",
-    classe_produto: payload?.variacao > 0 ? "V" : "P",
+    classe_produto: payload?.variacao > 0 ? "V" : "S",
     gtin: String(payload?.gtin),
     marca: payload?.nome_marca,
     tipo_embalagem: "2",
@@ -53,7 +63,7 @@ async function toTiny(payload) {
     largura_embalagem: String(payload.largura),
     diametro_embalagem: "00",
     garantia: "3 meses",
-    cest: "",
+    cest: cest,
     valor_max: "0",
     motivo_isencao: "",
     descricao_complementar: payload?.detalhes_html,

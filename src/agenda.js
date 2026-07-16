@@ -19,11 +19,6 @@ async function init() {
   //Espaço reserva para testes ;
   global.config_debug = 0; // 1 - debug | 0 - producao
 
-  if (global.config_debug == 1) {
-    await AnuncioController.init();
-    return;
-  }
-
   //await task();
   //await AnuncioController.atualizarPrecoVenda();
   //console.log("O processamento encerrado " + lib.currentDateTimeStr());
