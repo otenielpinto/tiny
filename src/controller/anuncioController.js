@@ -171,6 +171,15 @@ async function atualizarPrecoVenda() {
 
   //para cada tenant , atualizo os preços
   for (let tenant of tenants) {
+    //permite que o tenant desative a atualizacao de preco via mpk_integracao.nao_atualizar_preco = 1 (Firebird nao tem boolean)
+    //coluna pode nao existir/vir null/undefined ; so bloqueia quando o valor explicito for 1
+    if (Number(tenant?.nao_atualizar_preco) === 1) {
+      console.log(
+        "Atualizacao de preco desativada para o tenant " + tenant.id_tenant,
+      );
+      continue;
+    }
+
     let anuncioRepository = new AnuncioRepository(c, tenant.id_tenant);
     let where = {
       id_tenant: tenant.id_tenant,
@@ -525,6 +534,7 @@ async function removerPromocao() {
   let key = "remover_promocao";
   for (let tenant of tenants) {
     if ((await systemService.started(tenant.id_tenant, key)) == 1) continue;
+    if (Number(tenant?.nao_atualizar_preco) === 1) continue;
     await removerPromocaoByTenant(tenant);
   }
 }
